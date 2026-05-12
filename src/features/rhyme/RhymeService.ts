@@ -1,291 +1,167 @@
-// src/features/rhyme/RhymeService.ts
-// Serviço principal de análise de rimas para FlowWriter
-//
-// LIMITAÇÕES DO MVP:
-// - Análise heurística, não usa corpus linguístico real
-// - Classificação rich/poor é aproximada (sem POS tagger)
-// - Rimas multissilábicas detectadas por heurística de vogais
-// - Suficiente para composição musical, não para análise acadêmica
+﻿// Motor de rimas em TypeScript puro — zero dependências externas
+// Algoritmo: matching por sufixo fonético normalizado (sem acentos)
 
-import { RhymeAnalysis, RhymeMatch, RhymeChain, RhymeSuggestion } from '../../shared/types/Rhyme'
-import {
-  normalizeText, toPhoneticKey, extractRhymeNucleus,
-  extractEndWord, splitLines, hasAssonance, detectAlliteration,
-  removeAccents
-} from './phoneticUtils'
-import { phoneticSimilarity, rhymeNucleusSimilarity } from '../../shared/utils/stringSimilarity'
-import {
-  classifyRhymeType, detectRhymeScheme,
-  getRhymeColor, getRhymeLabel
-} from './rhymeScoring'
-import { lookupDictionary } from './rhymeDictionary'
+const WORD_BANK: readonly string[] = [
+  // -ão
+  'coração','situação','irmão','missão','ladrão','campeão',
+  'paixão','traição','solidão','nação','razão','visão',
+  'prisão','função','atenção','emoção','lição','ação',
+  'condição','relação','conexão','proteção','evolução',
+  'revolução','geração','tentação','vocação','ambição',
+  'respiração','celebração','comunicação','desolação',
+  'inspiração','admiração','motivação','contemplação',
 
-// Thresholds de similaridade
-const THRESHOLD_EXACT = 0.88
-const THRESHOLD_APPROX = 0.60
-const THRESHOLD_ASSONANCE = 0.40
+  // -ada
+  'nada','calada','estrada','quebrada','madrugada',
+  'jornada','chegada','jogada','passada','chamada',
+  'virada','pancada','facada','morada','temporada',
+  'barricada','forçada','bofetada','pisada','parada',
+  'tomada','punhalada','fumada','pegada','escapada',
+  'marcada','sonhada','largada','encruzilhada','traçada',
 
-let matchIdCounter = 0
-const nextId = () => `rm_${++matchIdCounter}`
+  // -eiro
+  'dinheiro','parceiro','guerreiro','verdadeiro','primeiro',
+  'inteiro','rasteiro','mensageiro','feiticeiro','bandoleiro',
+  'forasteiro','cavaleiro','companheiro','passageiro',
+  'aventureiro','pedreiro','ferreiro','marinheiro',
+  'motoqueiro','funkeiro','pagodeiro','cabeleireiro',
+  'prisioneiro','mineiro','mochileiro',
 
-/**
- * Analisa rimas completas de um texto
- */
-export function analyzeRhymes(text: string): RhymeAnalysis {
-  const lines = splitLines(text)
-  if (lines.length === 0) {
-    return emptyAnalysis()
-  }
+  // -ia
+  'fria','melodia','magia','covardia','alegria',
+  'ousadia','fantasia','harmonia','agonia','ironia',
+  'energia','utopia','euforia','poesia','teoria',
+  'galeria','vitória','memória','história','glória',
+  'trajetória','heresia',
 
-  // Extrai última palavra significativa de cada linha
-  const endWords = lines.map(extractEndWord)
-  const phoneticKeys = endWords.map(toPhoneticKey)
-  const rhymeNuclei = endWords.map(extractRhymeNucleus)
+  // -ente
+  'frente','gente','corrente','semente','quente',
+  'diferente','presente','recente','consciente',
+  'inocente','urgente','evidente','independente',
+  'transparente','aparente','impaciente','fluente',
+  'frequente','persistente','resistente','contente',
+  'decente','potente','vivente',
 
-  // ─── Detectar rimas finais ───────────────────────────────────────────────────
-  const matches: RhymeMatch[] = []
-  const lineLabels: (string | null)[] = new Array(lines.length).fill(null)
-  const chains: Map<string, RhymeChain> = new Map()
-  let chainIndex = 0
+  // -ura
+  'altura','cultura','mistura','criatura','loucura',
+  'abertura','pintura','aventura','ternura','doçura',
+  'estrutura','ruptura','cobertura','futura','natura',
+  'escultura','conjuntura','armadura','fritura',
 
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-      if (!endWords[i] || !endWords[j]) continue
-      if (endWords[i] === endWords[j]) continue // mesma palavra não conta
+  // -ido / -ida
+  'seguido','perdido','ferido','vivido','decidido',
+  'escolhido','sofrido','batido','sentido','partido',
+  'conhecido','envolvido','sumido','nascido','esquecido',
+  'fugido','recebido','definido',
+  'vida','saída','partida','corrida','comida',
+  'bebida','medida','querida','avenida','ferida',
+  'despedida','guarida',
 
-      const nucleusSimilarity = rhymeNucleusSimilarity(rhymeNuclei[i], rhymeNuclei[j])
-      const fullSimilarity = phoneticSimilarity(phoneticKeys[i], phoneticKeys[j])
-      const score = Math.max(nucleusSimilarity, fullSimilarity * 0.8)
+  // -or
+  'amor','calor','dor','valor','melhor','maior',
+  'menor','cor','flor','terror','favor','humor',
+  'senhor','cantor','doutor','motor','exterior',
+  'interior','inferior','superior','produtor','autor',
+  'governador','trabalhador','sonhador','lutador',
+  'vencedor',
 
-      if (score < THRESHOLD_ASSONANCE) continue
+  // -al
+  'real','igual','final','sinal','local','fatal',
+  'leal','mental','total','original','nacional',
+  'global','brutal','digital','natural','marginal',
+  'racional','pessoal','especial','genial','atual',
+  'virtual','criminal','profissional','emocional',
+  'intelectual','espiritual','cultural','animal',
 
-      const rhymeType = classifyRhymeType(score, endWords[i], endWords[j], false)
+  // -eza
+  'beleza','tristeza','riqueza','natureza','firmeza',
+  'leveza','pobreza','certeza','pureza','nobreza',
+  'fraqueza','dureza','realeza','delicadeza',
 
-      // Agrupar em cadeias (cluster de rimas)
-      let chainLabel: string
-      const existingChain = findChainForWord(chains, endWords[i]) ||
-        findChainForWord(chains, endWords[j])
+  // -agem
+  'viagem','passagem','coragem','mensagem','linguagem',
+  'imagem','montagem','vantagem','homenagem','garagem',
+  'bagagem','personagem','reportagem',
 
-      if (existingChain) {
-        chainLabel = existingChain.label
-        if (!existingChain.words.includes(endWords[j])) {
-          existingChain.words.push(endWords[j])
-          existingChain.lines.push(j)
-        }
-        if (!existingChain.words.includes(endWords[i])) {
-          existingChain.words.push(endWords[i])
-          existingChain.lines.push(i)
-        }
-      } else {
-        chainLabel = getRhymeLabel(chainIndex)
-        const color = getRhymeColor(chainIndex)
-        chains.set(chainLabel, {
-          id: `chain_${chainIndex}`,
-          label: chainLabel,
-          color,
-          words: [endWords[i], endWords[j]],
-          lines: [i, j],
-          type: rhymeType
-        })
-        chainIndex++
-      }
+  // -oso / -osa
+  'famoso','poderoso','perigoso','gostoso','amoroso',
+  'nervoso','misterioso','generoso','valeroso','vitorioso',
+  'orgulhoso','glorioso','precioso','ansioso','curioso',
+  'formosa','grandiosa','venenosa','dolorosa','saborosa',
 
-      if (!lineLabels[i]) lineLabels[i] = chainLabel
-      if (!lineLabels[j]) lineLabels[j] = chainLabel
+  // -ando / -endo / -indo
+  'falando','caminhando','pensando','lutando','buscando',
+  'chegando','gritando','contando','tentando','errando',
+  'acertando','mandando','guardando','ganhando','sangrando',
+  'subindo','sofrendo','fugindo','saindo','caindo',
+  'correndo','seguindo','vivendo','crescendo','descendo',
 
-      const chain = chains.get(chainLabel)!
-      matches.push({
-        id: nextId(),
-        sourceWord: endWords[i],
-        targetWord: endWords[j],
-        sourceLine: i,
-        targetLine: j,
-        score,
-        type: rhymeType,
-        rhymeClass: chainLabel,
-        color: chain.color,
-        phoneticSource: phoneticKeys[i],
-        phoneticTarget: phoneticKeys[j],
-        isInternal: false
-      })
-    }
-  }
+  // -inho / -ino / -ano
+  'caminho','sozinho','vizinho','carinho','novinho',
+  'destino','latino','masculino','clandestino','menino',
+  'queridinho','gatinho','bonzinho',
+  'plano','humano','urbano','soberano','americano',
 
-  // ─── Detectar rimas internas ─────────────────────────────────────────────────
-  const internalRhymes = detectInternalRhymes(lines)
+  // -ima / -ama
+  'rima','clima','prima','cima','vítima','última',
+  'fama','chama','drama','grama','programa','trama',
+  'panorama','cama','dama',
 
-  // ─── Detectar assonâncias ────────────────────────────────────────────────────
-  const assonanceMatches = detectAssonanceMatches(lines, endWords, phoneticKeys)
+  // -ade
+  'saudade','verdade','cidade','vontade','liberdade',
+  'amizade','lealdade','crueldade','felicidade','realidade',
+  'identidade','oportunidade','necessidade','eternidade',
+  'capacidade','autoridade',
 
-  // ─── Detectar aliterações ────────────────────────────────────────────────────
-  const alliterationMatches = detectAlliterationMatches(lines)
+  // -ela / -elo
+  'belo','gelo','cabelo','modelo','apelo','paralelo',
+  'bela','janela','novela','aquarela','canela',
+  'favela','viela',
 
-  // ─── Rimas multissilábicas ───────────────────────────────────────────────────
-  const multisyllabicMatches = matches.filter(m => m.type === 'multisyllabic')
+  // -ar
+  'lugar','olhar','amar','falar','chamar','ficar',
+  'buscar','voltar','andar','cantar','lutar','gritar',
+  'sonhar','tentar','entrar','passar','ganhar','esperar',
+  'bailar','encarar','superar','despertar','conquistar',
 
-  // ─── Esquema de rimas ────────────────────────────────────────────────────────
-  const scheme = detectRhymeScheme(lineLabels)
+  // -undo
+  'mundo','fundo','segundo','profundo','imundo','vagabundo',
 
-  // ─── Density ────────────────────────────────────────────────────────────────
-  const linesWithRhyme = new Set([
-    ...matches.flatMap(m => [m.sourceLine, m.targetLine])
-  ]).size
-  const rhymeDensity = lines.length > 0 ? linesWithRhyme / lines.length : 0
+  // -alho / -ilha / -ilho
+  'brilho','trilho','filho','vermelho','espelho',
+  'trabalho','orgulho','conselho','maravilha',
 
-  // ─── Sugestões ──────────────────────────────────────────────────────────────
-  const suggestions = generateSuggestions(endWords, lines.length)
+  // -ito / -ita
+  'bonito','bendito','maldito','espírito','infinito',
+  'bonita','maldita','bendita',
 
-  return {
-    scheme,
-    matches,
-    chains: Array.from(chains.values()),
-    rhymeDensity,
-    internalRhymes,
-    multisyllabicMatches,
-    assonanceMatches,
-    alliterationMatches,
-    suggestions,
-    endWords
-  }
+  // -orte / -arte / -oite
+  'forte','sorte','morte','norte','porte',
+  'parte','arte','marte',
+  'noite',
+]
+
+function normalize(word: string): string {
+  return word
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z]/g, '')
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+export function findRhymes(input: string, limit = 10): string[] {
+  if (!input || input.length < 2) return []
+  const normInput = normalize(input)
 
-function findChainForWord(chains: Map<string, RhymeChain>, word: string): RhymeChain | null {
-  for (const chain of chains.values()) {
-    if (chain.words.includes(word)) return chain
-  }
-  return null
-}
-
-function detectInternalRhymes(lines: string[]): RhymeMatch[] {
-  const internal: RhymeMatch[] = []
-
-  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-    const words = normalizeText(lines[lineIdx])
-      .split(/\s+/)
-      .filter(w => w.length > 3)
-
-    for (let i = 0; i < words.length; i++) {
-      for (let j = i + 2; j < words.length; j++) { // pular palavras adjacentes
-        const keyI = toPhoneticKey(words[i])
-        const keyJ = toPhoneticKey(words[j])
-        const score = phoneticSimilarity(keyI, keyJ)
-
-        if (score >= THRESHOLD_APPROX) {
-          internal.push({
-            id: nextId(),
-            sourceWord: words[i],
-            targetWord: words[j],
-            sourceLine: lineIdx,
-            targetLine: lineIdx,
-            score,
-            type: 'internal',
-            rhymeClass: 'INT',
-            color: '#a78bfa',
-            phoneticSource: keyI,
-            phoneticTarget: keyJ,
-            isInternal: true
-          })
-        }
-      }
-    }
+  for (const suffixLen of [4, 3, 2]) {
+    if (normInput.length < suffixLen) continue
+    const suffix = normInput.slice(-suffixLen)
+    const matches = WORD_BANK.filter(w => {
+      const n = normalize(w)
+      return n !== normInput && n.slice(-suffixLen) === suffix
+    })
+    if (matches.length >= 3) return matches.slice(0, limit)
   }
 
-  return internal
-}
-
-function detectAssonanceMatches(
-  lines: string[],
-  endWords: string[],
-  phoneticKeys: string[]
-): RhymeMatch[] {
-  const assonance: RhymeMatch[] = []
-
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-      if (!endWords[i] || !endWords[j]) continue
-      if (hasAssonance(phoneticKeys[i], phoneticKeys[j])) {
-        const score = phoneticSimilarity(phoneticKeys[i], phoneticKeys[j])
-        if (score >= 0.35 && score < THRESHOLD_APPROX) {
-          assonance.push({
-            id: nextId(),
-            sourceWord: endWords[i],
-            targetWord: endWords[j],
-            sourceLine: i,
-            targetLine: j,
-            score,
-            type: 'assonance',
-            rhymeClass: 'ASS',
-            color: '#64748b',
-            phoneticSource: phoneticKeys[i],
-            phoneticTarget: phoneticKeys[j],
-            isInternal: false
-          })
-        }
-      }
-    }
-  }
-
-  return assonance
-}
-
-function detectAlliterationMatches(lines: string[]): RhymeMatch[] {
-  const results: RhymeMatch[] = []
-
-  for (let i = 0; i < lines.length; i++) {
-    const consonant = detectAlliteration(lines[i])
-    if (consonant) {
-      results.push({
-        id: nextId(),
-        sourceWord: consonant,
-        targetWord: lines[i].substring(0, 40),
-        sourceLine: i,
-        targetLine: i,
-        score: 1.0,
-        type: 'alliteration',
-        rhymeClass: 'ALL',
-        color: '#fbbf24',
-        phoneticSource: consonant,
-        phoneticTarget: consonant,
-        isInternal: true
-      })
-    }
-  }
-
-  return results
-}
-
-function generateSuggestions(endWords: string[], lineCount: number): RhymeSuggestion[] {
-  // Sugerir para as últimas 3 palavras sem rima detectada
-  const suggestions: RhymeSuggestion[] = []
-  const recent = endWords.slice(-5).filter(Boolean)
-
-  for (const word of recent) {
-    const dictSuggestions = lookupDictionary(word)
-    if (dictSuggestions.length > 0) {
-      suggestions.push({
-        forWord: word,
-        suggestions: dictSuggestions.slice(0, 6),
-        phoneticKey: toPhoneticKey(word)
-      })
-    }
-  }
-
-  return suggestions
-}
-
-function emptyAnalysis(): RhymeAnalysis {
-  return {
-    scheme: 'free',
-    matches: [],
-    chains: [],
-    rhymeDensity: 0,
-    internalRhymes: [],
-    multisyllabicMatches: [],
-    assonanceMatches: [],
-    alliterationMatches: [],
-    suggestions: [],
-    endWords: []
-  }
+  return []
 }

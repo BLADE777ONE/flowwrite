@@ -71,9 +71,7 @@
     color: theme('colors.paper.text');
     @apply outline-none font-mono text-[15.5px] leading-[2.15];
     min-height: 100%;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 2.5rem 2rem 6rem;
+    padding: 2.5rem 3rem 6rem;
     caret-color: theme('colors.accent.primary');
     letter-spacing: 0.012em;
   }
@@ -123,7 +121,8 @@
            transition-all duration-200;
   }
   .editor-toolbar-btn:hover:not(.active) {
-    @apply text-paper-text bg-black/6 border-paper-border;
+    @apply text-paper-text border-paper-border;
+    background: rgba(0,0,0,0.06);
   }
   .editor-toolbar-btn.active {
     @apply text-accent-primary border-accent-primary/40;
@@ -351,6 +350,11 @@
 .animate-fade-in  { animation: fadeIn 0.22s ease-out; }
 .animate-slide-in { animation: slideIn 0.22s ease-out; }
 .glow-pulse       { animation: glowPulse 3s ease-in-out infinite; }
+
+@keyframes bounceDot {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
 
 /* ─── Seleção de texto (editor claro) ────────────────────────────────────── */
 .tiptap-editor .ProseMirror ::selection {
