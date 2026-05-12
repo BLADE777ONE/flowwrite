@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+*.db
+*.db-journal
+.env
+dna_profile.json
+release/

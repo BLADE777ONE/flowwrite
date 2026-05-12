@@ -1,0 +1,134 @@
+// src/database/prisma/schema.prisma
+// FlowWriter — Schema local SQLite via Prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Projeto musical ─────────────────────────────────────────────────────────
+model Project {
+  id        String   @id @default(cuid())
+  title     String
+  bpm       Int?
+  vibe      String?  // trap, drill, boombap, plug, funk, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  songs    Song[]
+  tags     ProjectTag[]
+}
+
+// ─── Música / Letra ───────────────────────────────────────────────────────────
+model Song {
+  id           String   @id @default(cuid())
+  projectId    String
+  title        String
+  content      String   @default("")
+  metadataJson String?  // JSON livre para metadados extras
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sections  Section[]
+  versions  SongVersion[]
+  cache     AnalysisCache?
+}
+
+// ─── Seção dentro da letra ───────────────────────────────────────────────────
+model Section {
+  id        String   @id @default(cuid())
+  songId    String
+  type      String   // intro | verse | chorus | bridge | outro | freestyle | custom
+  order     Int
+  content   String   @default("")
+  startBar  Int?
+  endBar    Int?
+  label     String?  // nome custom da seção
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+// ─── Histórico de versões ────────────────────────────────────────────────────
+model SongVersion {
+  id          String   @id @default(cuid())
+  songId      String
+  content     String
+  versionName String
+  createdAt   DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+// ─── Tags de projeto ──────────────────────────────────────────────────────────
+model ProjectTag {
+  id        String @id @default(cuid())
+  projectId String
+  tag       String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ─── Dicionário local de rimas ───────────────────────────────────────────────
+model RhymeDictionary {
+  id             String   @id @default(cuid())
+  term           String   @unique
+  suggestionsJson String  // JSON: string[]
+  phoneticKey    String
+  category       String?  // família fonética
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ─── Métricas de estilo do artista ──────────────────────────────────────────
+model StyleMetrics {
+  id                   String   @id @default(cuid())
+  totalSongs           Int      @default(0)
+  totalWords           Int      @default(0)
+  frequentWordsJson    String   @default("[]")   // JSON: {word, count}[]
+  recurringThemesJson  String   @default("[]")   // JSON: string[]
+  averageLineLength    Float    @default(0)
+  averageSyllablesPerLine Float @default(0)
+  vocabularyEntropy    Float    @default(0)       // 0-1
+  dominantVibe         String?
+  rhymeDensity         Float    @default(0)
+  internalRhymeRate    Float    @default(0)
+  multisyllableRate    Float    @default(0)
+  adlibUsageRate       Float    @default(0)
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── Frequência de palavras ──────────────────────────────────────────────────
+model WordFrequency {
+  id         String   @id @default(cuid())
+  word       String   @unique
+  count      Int      @default(1)
+  lastUsedAt DateTime @default(now())
+}
+
+// ─── Cache de análise por música ─────────────────────────────────────────────
+model AnalysisCache {
+  id                  String   @id @default(cuid())
+  songId              String   @unique
+  rhymeAnalysisJson   String   @default("{}")
+  metricsAnalysisJson String   @default("{}")
+  clicheAnalysisJson  String   @default("{}")
+  qualityAnalysisJson String   @default("{}")
+  updatedAt           DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+// ─── Configurações do app ────────────────────────────────────────────────────
+model AppSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
