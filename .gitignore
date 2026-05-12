@@ -6,3 +6,7 @@ dist-electron/
 .env
 dna_profile.json
 release/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
