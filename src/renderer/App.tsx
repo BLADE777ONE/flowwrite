@@ -71,7 +71,7 @@ export default function App() {
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null)
   const [dictLoading, setDictLoading] = useState(false)
   const [activeBarIndex, setActiveBarIndex] = useState(0)
-  const { bpm } = useEditorStore()
+  const { bpm, metronomePlaying } = useEditorStore()
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLoadingRef = useRef(false)
@@ -294,7 +294,13 @@ export default function App() {
           scopedLines={scopedLines}
           activeBlockStart={activeBlockStart}
         />
-        <RhythmicScorePanel lines={scopedLines} bpm={bpm} startBarIndex={activeBlockStart} />
+        <RhythmicScorePanel
+          lines={scopedLines}
+          bpm={bpm}
+          startBarIndex={activeBlockStart}
+          activeBarIndex={safeActiveBarIndex}
+          playing={metronomePlaying}
+        />
         <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} segments={segments} />
       </div>
 
@@ -302,6 +308,8 @@ export default function App() {
         activeTab={activeTab}
         selectedWord={selectedWord}
         lines={scopedLines}
+        activeBlockStart={activeBlockStart}
+        activeBarIndex={safeActiveBarIndex}
         dictResult={dictResult}
         dictLoading={dictLoading}
         onTabChange={setActiveTab}

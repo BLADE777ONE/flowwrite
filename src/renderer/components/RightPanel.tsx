@@ -13,6 +13,8 @@ interface RightPanelProps {
   activeTab: ActiveToolTab
   selectedWord: string
   lines: string[]
+  activeBlockStart: number
+  activeBarIndex: number
   dictResult: DictionaryResult | null
   dictLoading: boolean
   onTabChange: (tab: ActiveToolTab) => void
@@ -909,13 +911,29 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
   )
 }
 
-export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoading, onTabChange, onInsertWord, onInsertLine }: RightPanelProps) {
+export function RightPanel({
+  activeTab,
+  selectedWord,
+  lines,
+  activeBlockStart,
+  activeBarIndex,
+  dictResult,
+  dictLoading,
+  onTabChange,
+  onInsertWord,
+  onInsertLine,
+}: RightPanelProps) {
+  const blockNumber = Math.floor(activeBlockStart / 4) + 1
+  const activeBarNumber = activeBarIndex + 1
+
   return (
     <aside className="w-[21rem] min-w-[19.5rem] bg-[#08080c] border-l border-white/[0.07] flex flex-col relative shadow-[-12px_0_36px_rgba(0,0,0,0.2)]">
       <div className="h-16 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0c0c11] app-region-drag">
         <div>
           <span className="text-xs text-gray-500 font-bold tracking-wider">FERRAMENTAS LÍRICAS</span>
-          <p className="text-[10px] text-gray-600 mt-1">Métrica, rimas e vocabulário</p>
+          <p className="text-[10px] text-gray-600 mt-1">
+            Bloco {blockNumber} · Bar {activeBarNumber} · {lines.length} barras
+          </p>
         </div>
         <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
       </div>

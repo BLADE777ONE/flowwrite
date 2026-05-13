@@ -15,6 +15,7 @@ interface EditorState {
   rhymeHighlightsEnabled: boolean
   showVersionHistory: boolean
   bpm: number
+  metronomePlaying: boolean
   autosaveCount: number          // conta autosaves para disparar DNA update
   rightPanelCollapsed: boolean
 
@@ -30,6 +31,8 @@ interface EditorState {
   toggleRhymeHighlights: () => void
   setShowVersionHistory: (v: boolean) => void
   setBpm: (bpm: number) => void
+  setMetronomePlaying: (playing: boolean) => void
+  toggleMetronomePlaying: () => void
   incrementAutosaveCount: () => void
   toggleRightPanel: () => void
 }
@@ -45,6 +48,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   rhymeHighlightsEnabled: true,
   showVersionHistory: false,
   bpm: 90,
+  metronomePlaying: false,
   autosaveCount: 0,
   rightPanelCollapsed: false,
 
@@ -80,6 +84,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   toggleRhymeHighlights: () => set(s => ({ rhymeHighlightsEnabled: !s.rhymeHighlightsEnabled })),
   setShowVersionHistory:  (v) => set({ showVersionHistory: v }),
   setBpm: (bpm) => set({ bpm }),
+  setMetronomePlaying: (playing) => set({ metronomePlaying: playing }),
+  toggleMetronomePlaying: () => set(s => ({ metronomePlaying: !s.metronomePlaying })),
   incrementAutosaveCount: () => set(s => ({ autosaveCount: s.autosaveCount + 1 })),
   toggleRightPanel: () => set(s => ({ rightPanelCollapsed: !s.rightPanelCollapsed })),
 }))

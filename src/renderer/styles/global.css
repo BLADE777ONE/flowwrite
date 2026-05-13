@@ -374,8 +374,8 @@
     position: relative;
     width: 100%;
     min-width: 0;
-    height: 15.5rem;
-    min-height: 15.5rem;
+    height: 8.9rem;
+    min-height: 8.9rem;
     display: flex;
     flex-direction: column;
     background: #121212;
@@ -384,6 +384,16 @@
     transition: height 180ms ease, min-height 180ms ease;
     z-index: 20;
     flex-shrink: 0;
+  }
+
+  .rhythm-panel.is-playing {
+    border-top-color: rgba(0,229,255,0.22);
+    box-shadow: 0 -14px 36px rgba(0,0,0,0.28), 0 -1px 18px rgba(0,229,255,0.08);
+  }
+
+  .rhythm-panel.is-detail {
+    height: 15.5rem;
+    min-height: 15.5rem;
   }
 
   .rhythm-panel.is-collapsed {
@@ -410,7 +420,7 @@
   }
 
   .rhythm-panel-header {
-    min-height: 3.4rem;
+    min-height: 3.05rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -436,16 +446,50 @@
 
   .rhythm-panel-header h2 {
     color: #f4f4f5;
-    font-size: 0.92rem;
+    font-size: 0.86rem;
     font-weight: 900;
     letter-spacing: 0.02em;
     line-height: 1.1;
     margin-top: 0.18rem;
   }
 
+  .rhythm-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .rhythm-view-toggle {
+    display: flex;
+    align-items: center;
+    height: 2.1rem;
+    padding: 0.16rem;
+    border: 1px solid rgba(255,255,255,0.075);
+    border-radius: 0.42rem;
+    background: rgba(0,0,0,0.22);
+  }
+
+  .rhythm-view-toggle button {
+    height: 1.65rem;
+    padding: 0 0.58rem;
+    border-radius: 0.3rem;
+    color: rgba(255,255,255,0.42);
+    font-size: 0.58rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 120ms ease, background 120ms ease;
+  }
+
+  .rhythm-view-toggle button.active {
+    color: #f8fafc;
+    background: rgba(0,229,255,0.13);
+    box-shadow: inset 0 0 0 1px rgba(0,229,255,0.18);
+  }
+
   .rhythm-bpm-pill {
-    width: 3.45rem;
-    height: 2.35rem;
+    width: 3.05rem;
+    height: 2.1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -474,8 +518,8 @@
 
   .rhythm-panel-stats {
     position: absolute;
-    right: 4.2rem;
-    top: 0.72rem;
+    right: 11.1rem;
+    top: 0.68rem;
     display: flex;
     gap: 0.45rem;
     padding: 0;
@@ -495,10 +539,16 @@
     padding: 0.38rem 0.55rem;
   }
 
+  .rhythm-panel.is-playing .rhythm-panel-stats span:last-child {
+    color: #00E5FF;
+    border-color: rgba(0,229,255,0.22);
+    background: rgba(0,229,255,0.07);
+  }
+
   .rhythm-beat-header {
     position: sticky;
     top: 0;
-    height: 1.65rem;
+    height: 1.42rem;
     display: flex;
     gap: 0.6rem;
     margin: 0 1rem;
@@ -546,7 +596,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0.45rem 1rem 1.1rem;
+    padding: 0.32rem 1rem 0.8rem;
   }
 
   .rhythm-panel.is-collapsed .rhythm-lines {
@@ -556,16 +606,26 @@
   .rhythm-line {
     display: flex;
     gap: 0.6rem;
+    min-height: 1.35rem;
+    padding: 0.14rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.045);
+  }
+
+  .rhythm-panel.is-detail .rhythm-line {
     min-height: 3.45rem;
     padding: 0.32rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.045);
+  }
+
+  .rhythm-line.is-active {
+    background: linear-gradient(90deg, rgba(0,229,255,0.065), transparent 38%);
+    box-shadow: inset 2px 0 0 rgba(0,229,255,0.72);
   }
 
   .rhythm-block-label {
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    padding: 0.6rem 0 0.15rem 2.85rem;
+    padding: 0.28rem 0 0.12rem 2.85rem;
     color: rgba(255,255,255,0.38);
     font-family: theme('fontFamily.mono');
     border-top: 1px solid rgba(0,229,255,0.12);
@@ -596,6 +656,11 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    gap: 0.12rem;
+    padding-top: 0;
+  }
+
+  .rhythm-panel.is-detail .rhythm-line-meta {
     gap: 0.28rem;
     padding-top: 0.22rem;
   }
@@ -625,6 +690,44 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
   }
 
+  .rhythm-compact-track {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 1.15rem;
+    align-self: center;
+    border: 1px solid rgba(255,255,255,0.055);
+    border-radius: 0.28rem;
+    background: #171717;
+    overflow: hidden;
+  }
+
+  .rhythm-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    z-index: 4;
+    pointer-events: none;
+    background: #00E5FF;
+    box-shadow: 0 0 12px rgba(0,229,255,0.75), 0 0 28px rgba(0,229,255,0.22);
+    animation: rhythmPlayhead var(--rhythm-bar-ms, 2000ms) linear infinite;
+  }
+
+  .rhythm-playhead::before {
+    content: "";
+    position: absolute;
+    top: 0.18rem;
+    left: 50%;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 99px;
+    background: #00E5FF;
+    transform: translateX(-50%);
+    box-shadow: 0 0 12px rgba(0,229,255,0.8);
+  }
+
   .rhythm-grid-slots,
   .rhythm-breath-row {
     position: absolute;
@@ -632,6 +735,27 @@
     display: grid;
     grid-template-columns: repeat(16, minmax(0, 1fr));
     pointer-events: none;
+  }
+
+  .rhythm-compact-notes {
+    position: absolute;
+    inset: 0.18rem 0.14rem;
+    display: grid;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    gap: 2px;
+    pointer-events: none;
+  }
+
+  .rhythm-compact-notes span {
+    min-width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(132,80,245,0.95), rgba(0,229,255,0.76));
+    opacity: 0.82;
+  }
+
+  .rhythm-compact-notes span.strong {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(0,229,255,0.36);
   }
 
   .rhythm-grid-slot {
@@ -672,10 +796,10 @@
     align-items: center;
     justify-content: center;
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 0.35rem;
-    background: linear-gradient(135deg, rgba(141,92,246,0.92), rgba(0,229,255,0.68));
+    border-radius: 0.2rem;
+    background: linear-gradient(90deg, rgba(132,80,245,0.9), rgba(0,229,255,0.64));
     color: #f8fafc;
-    box-shadow: 0 0 16px rgba(0,229,255,0.14), inset 0 1px 0 rgba(255,255,255,0.18);
+    box-shadow: 0 0 10px rgba(0,229,255,0.11), inset 0 1px 0 rgba(255,255,255,0.16);
     font-size: 0.62rem;
     font-weight: 800;
     line-height: 1;
@@ -772,6 +896,10 @@
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+@keyframes rhythmPlayhead {
+  from { left: 0; }
+  to   { left: 100%; }
 }
 
 .animate-fade-in  { animation: fadeIn 0.22s ease-out; }

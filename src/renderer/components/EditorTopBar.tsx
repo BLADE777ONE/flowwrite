@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { SectionToolbar } from '../../features/editor/components/SectionToolbar'
 import { useEditorStore } from '../../features/editor/editorStore'
@@ -23,9 +22,8 @@ export function EditorTopBar({
   onSave,
   onDelete,
 }: EditorTopBarProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const { bpm, setBpm } = useEditorStore()
-  const { beat, flash } = useMetronome(bpm, isPlaying)
+  const { bpm, setBpm, metronomePlaying, toggleMetronomePlaying } = useEditorStore()
+  const { beat, flash } = useMetronome(bpm, metronomePlaying)
 
   return (
     <header className="h-16 border-b border-white/[0.07] flex items-center px-5 gap-3 bg-[#0c0c11]/95 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
@@ -34,21 +32,21 @@ export function EditorTopBar({
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           type="button"
-          onClick={() => setIsPlaying(v => !v)}
+          onClick={toggleMetronomePlaying}
           className={`h-8 w-11 rounded-md border text-[10px] font-black uppercase tracking-wider transition ${
-            isPlaying
+            metronomePlaying
               ? 'border-cyan-400/60 bg-cyan-400/15 text-cyan-200 shadow-[0_0_18px_rgba(34,211,238,0.18)]'
               : 'border-white/[0.09] bg-white/[0.04] text-gray-300 hover:text-white hover:border-purple-400/50'
           }`}
-          title={isPlaying ? 'Parar metrônomo' : 'Iniciar metrônomo'}
+          title={metronomePlaying ? 'Parar metrônomo' : 'Iniciar metrônomo'}
         >
-          {isPlaying ? '■' : '▶'}
+          {metronomePlaying ? '■' : '▶'}
         </button>
 
         {/* 4 pontos de beat — sempre visíveis, animam quando tocando */}
         <div className="flex items-center gap-[5px]">
           {[0, 1, 2, 3].map(i => {
-            const isActive = isPlaying && beat === i && flash
+            const isActive = metronomePlaying && beat === i && flash
             const isDownbeat = i === 0
             return (
               <div
@@ -60,7 +58,7 @@ export function EditorTopBar({
                   transition: 'all 80ms ease-out',
                   background: isActive
                     ? (isDownbeat ? '#a855f7' : '#22d3ee')
-                    : isPlaying
+                    : metronomePlaying
                       ? 'rgba(255,255,255,0.18)'
                       : 'rgba(255,255,255,0.08)',
                   boxShadow: isActive

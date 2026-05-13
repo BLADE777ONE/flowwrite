@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { mapLineToRhythm, type RhythmLineMap, type RhythmSyllable } from '../rhythmMapping'
 
 interface RhythmicScorePanelProps {
   lines: string[]
   bpm: number
   startBarIndex?: number
+  activeBarIndex?: number
+  playing?: boolean
 }
 
 type SlotOverrides = Record<string, number>
+type ScoreViewMode = 'compact' | 'detail'
 
 const SLOT_MARKERS = ['1', 'e', '&', 'a', '2', 'e', '&', 'a', '3', 'e', '&', 'a', '4', 'e', '&', 'a']
 
@@ -66,6 +69,13 @@ function GridSlots() {
   )
 }
 
+function getLineDensity(syllableCount: number): { label: string; className: string } {
+  if (syllableCount >= 15) return { label: 'cheio', className: 'hot' }
+  if (syllableCount >= 10) return { label: 'pocket', className: 'good' }
+  if (syllableCount >= 5) return { label: 'leve', className: 'cool' }
+  return { label: 'vazio', className: 'low' }
+}
+
 function SyllableNote({
   lineIndex,
   note,
@@ -117,28 +127,36 @@ function RhythmLine({
   displayIndex,
   sourceIndex,
   map,
+  active,
+  mode,
+  playing,
   collapsed,
   onMove,
 }: {
   displayIndex: number
   sourceIndex: number
   map: RhythmLineMap
+  active: boolean
+  mode: ScoreViewMode
+  playing: boolean
   collapsed: boolean
   onMove: (lineIndex: number, note: RhythmSyllable, slot: number) => void
 }) {
   const filledSlots = new Set(map.syllables.map(note => note.slot))
+  const density = getLineDensity(map.syllables.length)
 
   return (
-    <div className="rhythm-line">
+    <div className={`rhythm-line ${active ? 'is-active' : ''} is-${density.className}`}>
       <div className="rhythm-line-meta">
         <small>BAR</small>
         <span>{String(displayIndex + 1).padStart(2, '0')}</span>
-        {!collapsed && <small>{Math.round(map.barDurationMs)}ms</small>}
+        {!collapsed && <small>{mode === 'detail' ? `${Math.round(map.barDurationMs)}ms` : density.label}</small>}
       </div>
 
-      {!collapsed && (
+      {!collapsed && mode === 'detail' && (
         <div className="rhythm-track">
           <GridSlots />
+          {playing && <span className="rhythm-playhead" />}
           <div className="rhythm-breath-row" aria-hidden="true">
             {Array.from({ length: 16 }).map((_, slot) => (
               <span key={slot} className={!filledSlots.has(slot) ? 'breath' : ''} />
@@ -155,12 +173,38 @@ function RhythmLine({
           ))}
         </div>
       )}
+
+      {!collapsed && mode === 'compact' && (
+        <div className="rhythm-compact-track">
+          <GridSlots />
+          {playing && <span className="rhythm-playhead" />}
+          <div className="rhythm-compact-notes">
+            {map.syllables.map(note => (
+              <span
+                key={note.id}
+                className={note.startsBeat ? 'strong' : ''}
+                style={{
+                  gridColumn: `${note.slot + 1} / span ${Math.max(1, note.durationSlots)}`,
+                }}
+                title={`${note.text} - slot ${note.slot + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-export function RhythmicScorePanel({ lines, bpm, startBarIndex = 0 }: RhythmicScorePanelProps) {
+export function RhythmicScorePanel({
+  lines,
+  bpm,
+  startBarIndex = 0,
+  activeBarIndex = startBarIndex,
+  playing = false,
+}: RhythmicScorePanelProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [mode, setMode] = useState<ScoreViewMode>('compact')
   const [overrides, setOverrides] = useState<SlotOverrides>({})
 
   const rhythmLines = useMemo(() => {
@@ -185,7 +229,10 @@ export function RhythmicScorePanel({ lines, bpm, startBarIndex = 0 }: RhythmicSc
   }
 
   return (
-    <aside className={`rhythm-panel ${collapsed ? 'is-collapsed' : ''}`}>
+    <aside
+      className={`rhythm-panel ${collapsed ? 'is-collapsed' : ''} ${playing ? 'is-playing' : ''} is-${mode}`}
+      style={{ '--rhythm-bar-ms': `${(60000 / Math.max(bpm, 1)) * 4}ms` } as CSSProperties}
+    >
       <button
         type="button"
         className="rhythm-collapse-btn"
@@ -198,12 +245,30 @@ export function RhythmicScorePanel({ lines, bpm, startBarIndex = 0 }: RhythmicSc
       <div className="rhythm-panel-header">
         <div>
           <p className="rhythm-kicker">Partitura</p>
-          {!collapsed && <h2>Flow Grid</h2>}
+          {!collapsed && <h2>Bloco {Math.floor(startBarIndex / 4) + 1}</h2>}
         </div>
         {!collapsed && (
-          <div className="rhythm-bpm-pill">
-            <span>{bpm}</span>
-            <small>BPM</small>
+          <div className="rhythm-header-actions">
+            <div className="rhythm-view-toggle" role="group" aria-label="Modo da partitura">
+              <button
+                type="button"
+                className={mode === 'compact' ? 'active' : ''}
+                onClick={() => setMode('compact')}
+              >
+                Mini
+              </button>
+              <button
+                type="button"
+                className={mode === 'detail' ? 'active' : ''}
+                onClick={() => setMode('detail')}
+              >
+                Editar
+              </button>
+            </div>
+            <div className="rhythm-bpm-pill">
+              <span>{bpm}</span>
+              <small>BPM</small>
+            </div>
           </div>
         )}
       </div>
@@ -212,7 +277,7 @@ export function RhythmicScorePanel({ lines, bpm, startBarIndex = 0 }: RhythmicSc
         <div className="rhythm-panel-stats">
           <span>{rhythmLines.length} barras</span>
           <span>{averageSyllables || '--'} sil/bar</span>
-          <span>4/4</span>
+          <span>{playing ? 'tocando' : '4/4'}</span>
         </div>
       )}
 
@@ -236,6 +301,9 @@ export function RhythmicScorePanel({ lines, bpm, startBarIndex = 0 }: RhythmicSc
                   displayIndex={absoluteIndex}
                   sourceIndex={sourceIndex}
                   map={map}
+                  active={absoluteIndex === activeBarIndex}
+                  mode={mode}
+                  playing={playing}
                   collapsed={collapsed}
                   onMove={handleMove}
                 />
