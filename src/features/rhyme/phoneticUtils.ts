@@ -129,9 +129,22 @@ export function toPhoneticKey(word: string): string {
  */
 export function extractRhymeNucleus(word: string): string {
   const phonetic = toPhoneticKey(word)
-  // Encontra a última sequência vocálica significativa
-  const match = phonetic.match(/[AEIOU~][A-Z~]*$/)
-  return match ? match[0] : phonetic.slice(-3)
+  const vowelMatches = [...phonetic.matchAll(/[AEIOU~]/g)]
+
+  if (vowelMatches.length === 0) return phonetic.slice(-3)
+
+  const tonicity = estimateTonicity(word)
+  const vowelFromEnd = tonicity === 'proparoxytone' ? 3 : tonicity === 'paroxytone' ? 2 : 1
+  const selectedIndex = Math.max(0, vowelMatches.length - vowelFromEnd)
+  let start = vowelMatches[selectedIndex].index ?? 0
+
+  // Mantém ditongos como uma unidade: boi, foi, vai, lei, mau, alto/calmo.
+  const pairBefore = phonetic.slice(Math.max(0, start - 1), start + 1)
+  if (['OI', 'AI', 'EI', 'UI', 'OU', 'AU'].includes(pairBefore)) {
+    start = Math.max(0, start - 1)
+  }
+
+  return phonetic.slice(start)
 }
 
 /**

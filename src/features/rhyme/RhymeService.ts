@@ -63,17 +63,47 @@ function vowelSignature(nucleus: string): string {
     .replace(/([AEIOU~])\1+/g, '$1')
 }
 
+function consonantSignature(nucleus: string): string {
+  return nucleus
+    .replace(/W/g, '')
+    .replace(/[AEIOU~]/g, '')
+}
+
+function hasVocalizedL(nucleus: string): boolean {
+  return nucleus.includes('W')
+}
+
+function hasCompatibleConsonantAnchor(nucA: string, nucB: string): boolean {
+  const conA = consonantSignature(nucA)
+  const conB = consonantSignature(nucB)
+
+  if (!conA || !conB) return false
+
+  return conA.slice(-1) === conB.slice(-1) || conA.slice(-2) === conB.slice(-2)
+}
+
 function scoreByVowelShape(nucA: string, nucB: string): number {
   const sigA = vowelSignature(nucA)
   const sigB = vowelSignature(nucB)
 
   if (!sigA || !sigB) return 0
 
-  // Rap/trap usa muita rima inclinada por assonância: calmo ≈ alto, foco ≈ jogo.
-  // Exige pelo menos duas vogais para não transformar todo final em "o/e" numa rima forte.
+  // Rap/trap usa muita rima inclinada por assonância, mas ela não pode dominar o
+  // esquema. "forma" não deve virar família de "idiota/cota/tropa" só por "o-a".
   if (sigA.length >= 2 && sigB.length >= 2) {
-    if (sigA === sigB) return 0.52
-    if (sigA.slice(-2) === sigB.slice(-2)) return 0.46
+    const sameSignature = sigA === sigB
+    const sameEndingSignature = sigA.slice(-2) === sigB.slice(-2)
+
+    if (sameSignature && hasVocalizedL(nucA) && hasVocalizedL(nucB)) {
+      return 0.62 // calmo ≈ alto, mal ≈ tal
+    }
+
+    if (sameSignature && hasCompatibleConsonantAnchor(nucA, nucB)) {
+      return 0.48
+    }
+
+    if (sameSignature) return 0.32
+    if (sameEndingSignature) return 0.28
   }
 
   return 0
