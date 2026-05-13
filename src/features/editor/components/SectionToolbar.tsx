@@ -22,7 +22,17 @@ export function SectionToolbar({ editor }: Props) {
   if (!editor) return null
 
   const insert = (type: SectionType, label?: string) => {
-    editor.chain().focus().insertSection(type, label).run()
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: 'sectionBlock',
+          attrs: { sectionType: type, label: label || '' },
+        },
+        { type: 'paragraph' },
+      ])
+      .run()
     setOpen(false)
     setCustomLabel('')
   }
