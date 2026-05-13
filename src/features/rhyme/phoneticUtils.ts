@@ -68,6 +68,7 @@ export function toPhoneticKey(word: string): string {
   key = key.replace(/lh/g, 'L')      // lh → L (som único)
   key = key.replace(/nh/g, 'N')      // nh → N (som único)
   key = key.replace(/ch/g, 'X')      // ch → X
+  key = key.replace(/l(?=[bcdfghjklmnpqrstvwxyz]|$)/g, 'W') // alto/calmo/mal: L vocalizado em PT-BR
   key = key.replace(/qu([ei])/g, 'K$1') // que/qui → ke/ki
   key = key.replace(/qu([ao])/g, 'KW$1') // qua/quo
   key = key.replace(/gu([ei])/g, 'G$1')  // gue/gui

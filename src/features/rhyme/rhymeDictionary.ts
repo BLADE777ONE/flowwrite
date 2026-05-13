@@ -3,6 +3,11 @@
 // Expandir progressivamente com as letras do usuário
 
 export const RHYME_DICTIONARY: Record<string, string[]> = {
+  // ─── Rimas inclinadas por L vocalizado / assinatura AU ─────────────────────
+  'alto': ['calmo', 'asfalto', 'salto', 'assalto', 'sobressalto', 'ressalto', 'palco', 'malto'],
+  'calmo': ['alto', 'asfalto', 'salto', 'assalto', 'sobressalto', 'ressalto', 'salmo', 'palco'],
+  'asfalto': ['alto', 'calmo', 'salto', 'assalto', 'sobressalto', 'ressalto'],
+
   // ─── Ditongo OI — família de "hoje" ─────────────────────────────────────────
   'hoje': ['foice', 'coice', 'açoite', 'noite', 'boi', 'foi', 'dói', 'pois', 'oito', 'dezoito', 'boite', 'doido', 'moita', 'foda-se', 'foisse', 'foi-se'],
 

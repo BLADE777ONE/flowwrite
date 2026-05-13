@@ -52,6 +52,28 @@ function getDiphthongFamily(nucleus: string): string | null {
   return null
 }
 
+function vowelSignature(nucleus: string): string {
+  return (nucleus.replace(/W/g, 'U').match(/[AEIOU~]/g) ?? [])
+    .join('')
+    .replace(/([AEIOU~])\1+/g, '$1')
+}
+
+function scoreByVowelShape(nucA: string, nucB: string): number {
+  const sigA = vowelSignature(nucA)
+  const sigB = vowelSignature(nucB)
+
+  if (!sigA || !sigB) return 0
+
+  // Rap/trap usa muita rima inclinada por assonância: calmo ≈ alto, foco ≈ jogo.
+  // Exige pelo menos duas vogais para não transformar todo final em "o/e" numa rima forte.
+  if (sigA.length >= 2 && sigB.length >= 2) {
+    if (sigA === sigB) return 0.52
+    if (sigA.slice(-2) === sigB.slice(-2)) return 0.46
+  }
+
+  return 0
+}
+
 // Compara dois núcleos rímicos pelo sufixo — retorna score 0-1
 function scoreByNucleus(wordA: string, wordB: string): number {
   const nucA = extractRhymeNucleus(wordA)
@@ -72,7 +94,7 @@ function scoreByNucleus(wordA: string, wordB: string): number {
     if (overlap === 1) {
       const dA = getDiphthongFamily(nucA)
       const dB = getDiphthongFamily(nucB)
-      if (!dA || !dB || dA !== dB) return 0
+      if (!dA || !dB || dA !== dB) return scoreByVowelShape(nucA, nucB)
     }
     return Math.min((overlap / minLen) * 0.95, 0.95)
   }
@@ -82,7 +104,7 @@ function scoreByNucleus(wordA: string, wordB: string): number {
   const dB = getDiphthongFamily(nucB)
   if (dA && dA === dB) return 0.45
 
-  return 0
+  return scoreByVowelShape(nucA, nucB)
 }
 
 // Fallback: score por sufixo de caracteres normalizados
