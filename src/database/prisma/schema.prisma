@@ -126,6 +126,17 @@ model AnalysisCache {
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 }
 
+// ─── Dicionário pessoal do artista ──────────────────────────────────────────
+model UserWord {
+  id        String   @id @default(cuid())
+  word      String
+  category  String   // giria | sinonimo | rima | custom
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([word, category])
+}
+
 // ─── Configurações do app ────────────────────────────────────────────────────
 model AppSettings {
   id    String @id @default(cuid())

@@ -49,6 +49,12 @@ const RHYME_DICT_CHANNELS = [
   'rhymeDict:delete',
 ] as const
 
+const USER_WORD_CHANNELS = [
+  'userword:list',
+  'userword:add',
+  'userword:delete',
+] as const
+
 // Python analysis server
 const PYTHON_CHANNELS = [
   'python:health',
@@ -66,6 +72,7 @@ type AllChannels =
   | typeof EXPORT_CHANNELS[number]
   | typeof SETTINGS_CHANNELS[number]
   | typeof RHYME_DICT_CHANNELS[number]
+  | typeof USER_WORD_CHANNELS[number]
   | typeof PYTHON_CHANNELS[number]
 
 const ALL_CHANNELS: ReadonlyArray<AllChannels> = [
@@ -75,6 +82,7 @@ const ALL_CHANNELS: ReadonlyArray<AllChannels> = [
   ...EXPORT_CHANNELS,
   ...SETTINGS_CHANNELS,
   ...RHYME_DICT_CHANNELS,
+  ...USER_WORD_CHANNELS,
   ...PYTHON_CHANNELS,
 ]
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
 import { analyzeMetrics, scoreBreathLoad, scoreBlockConsistency, generateLineAlerts } from '../../features/metrics/MetricsService'
 import { getRhymeStrength, getPredictableEndingLabel, type RhymeStrength } from '../../features/rhyme/rhymeScoring'
@@ -622,7 +622,62 @@ function DictionarySection({ title, words, className, onInsertWord }: {
   )
 }
 
+interface UserWord {
+  id: string
+  word: string
+  category: string
+  note?: string | null
+  createdAt: string
+}
+
+type WordCategory = 'giria' | 'sinonimo' | 'rima' | 'custom'
+
+const CATEGORY_LABELS: Record<WordCategory, string> = {
+  giria: 'Gírias',
+  sinonimo: 'Sinônimos',
+  rima: 'Rimas',
+  custom: 'Outros',
+}
+
+const CATEGORY_STYLES: Record<WordCategory, string> = {
+  giria:    'bg-purple-900/20 text-purple-300 border-purple-700/50',
+  sinonimo: 'bg-gray-800 text-gray-300 border-gray-700',
+  rima:     'bg-cyan-950/25 text-cyan-300 border-cyan-800/40',
+  custom:   'bg-yellow-900/20 text-yellow-300 border-yellow-800/40',
+}
+
 function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: Pick<RightPanelProps, 'selectedWord' | 'dictResult' | 'dictLoading' | 'onInsertWord'>) {
+  const [userWords, setUserWords] = useState<UserWord[]>([])
+  const [newWord, setNewWord] = useState('')
+  const [newCategory, setNewCategory] = useState<WordCategory>('giria')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!window.flowAPI) return
+    window.flowAPI.invoke('userword:list').then((data) => {
+      setUserWords(data as UserWord[])
+    }).catch(() => {})
+  }, [])
+
+  async function handleAddWord() {
+    const word = newWord.trim()
+    if (!word || !window.flowAPI) return
+    setSaving(true)
+    try {
+      const added = await window.flowAPI.invoke('userword:add', { word, category: newCategory }) as UserWord
+      setUserWords(prev => [added, ...prev.filter(w => !(w.word === added.word && w.category === added.category))])
+      setNewWord('')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.flowAPI) return
+    await window.flowAPI.invoke('userword:delete', id)
+    setUserWords(prev => prev.filter(w => w.id !== id))
+  }
+
   const hasResult = Boolean(
     dictResult &&
     (dictResult.girias.length > 0 || dictResult.sinonimos.length > 0 || dictResult.relacionados.length > 0 || dictResult.antonimos.length > 0),
@@ -630,6 +685,7 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
 
   return (
     <div>
+      {/* ── Vocabulário externo (palavra selecionada) ── */}
       <div className="mb-4">
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Vocabulário</h3>
         <p className="text-sm text-gray-300 mt-1">
@@ -638,48 +694,114 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
       </div>
 
       {!selectedWord ? (
-        <div className="text-center mt-10">
+        <div className="text-center mt-6 mb-6">
           <p className="text-sm text-gray-500">Clique em uma palavra no editor para ver gírias, sinônimos, relacionados e antônimos.</p>
         </div>
       ) : dictLoading ? (
-        <div className="text-center mt-10">
+        <div className="text-center mt-6 mb-6">
           <p className="text-xs text-gray-500 animate-pulse">Buscando vocabulário...</p>
         </div>
       ) : !hasResult ? (
-        <div className="text-center mt-10">
+        <div className="text-center mt-4 mb-6">
           <p className="text-sm text-gray-500">Sem resultados para</p>
           <p className="text-purple-400 font-semibold mt-1 capitalize">"{selectedWord}"</p>
           <p className="text-xs text-gray-600 mt-3">Tente: dinheiro, carro, amigo, fugir, estilo...</p>
         </div>
       ) : (
-        <div className="space-y-5">
-          <DictionarySection
-            title="Gírias / Urbano"
-            words={dictResult?.girias ?? []}
-            onInsertWord={onInsertWord}
-            className="bg-purple-900/20 text-purple-300 border-purple-700/50 hover:border-purple-400 hover:bg-purple-900/40"
-          />
-          <DictionarySection
-            title="Sinônimos"
-            words={dictResult?.sinonimos ?? []}
-            onInsertWord={onInsertWord}
-            className="bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500 hover:text-gray-100"
-          />
-          <DictionarySection
-            title="Relacionados"
-            words={dictResult?.relacionados ?? []}
-            onInsertWord={onInsertWord}
-            className="bg-cyan-950/25 text-cyan-300 border-cyan-800/40 hover:border-cyan-500 hover:bg-cyan-900/30"
-          />
-          <DictionarySection
-            title="Antônimos"
-            words={dictResult?.antonimos ?? []}
-            onInsertWord={onInsertWord}
-            className="bg-red-900/20 text-red-400 border-red-800/40 hover:border-red-600 hover:bg-red-900/30"
-          />
+        <div className="space-y-5 mb-6">
+          <DictionarySection title="Gírias / Urbano" words={dictResult?.girias ?? []} onInsertWord={onInsertWord}
+            className="bg-purple-900/20 text-purple-300 border-purple-700/50 hover:border-purple-400 hover:bg-purple-900/40" />
+          <DictionarySection title="Sinônimos" words={dictResult?.sinonimos ?? []} onInsertWord={onInsertWord}
+            className="bg-gray-800 text-gray-300 border-gray-700 hover:border-gray-500 hover:text-gray-100" />
+          <DictionarySection title="Relacionados" words={dictResult?.relacionados ?? []} onInsertWord={onInsertWord}
+            className="bg-cyan-950/25 text-cyan-300 border-cyan-800/40 hover:border-cyan-500 hover:bg-cyan-900/30" />
+          <DictionarySection title="Antônimos" words={dictResult?.antonimos ?? []} onInsertWord={onInsertWord}
+            className="bg-red-900/20 text-red-400 border-red-800/40 hover:border-red-600 hover:bg-red-900/30" />
           <p className="text-[10px] text-gray-700 pt-1">Clique para substituir no editor.</p>
         </div>
       )}
+
+      {/* ── Meu Dicionário ── */}
+      <div className="border-t border-white/[0.06] pt-4">
+        <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-3">Meu Dicionário</h3>
+
+        {/* Quick-add */}
+        {selectedWord && (
+          <button
+            onClick={() => setNewWord(selectedWord)}
+            className="text-[10px] text-purple-400 hover:text-purple-300 transition mb-2 block"
+          >
+            + Salvar "{selectedWord}" no dicionário
+          </button>
+        )}
+        <div className="flex gap-1 mb-4">
+          <input
+            value={newWord}
+            onChange={(e) => setNewWord(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddWord()}
+            placeholder="nova palavra..."
+            className="flex-1 min-w-0 bg-[#19191f] border border-[#2b2b36] focus:border-purple-700/60 rounded px-2 py-1.5 text-xs text-gray-200 outline-none transition"
+          />
+          <select
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value as WordCategory)}
+            className="bg-[#19191f] border border-[#2b2b36] rounded px-1.5 py-1 text-xs text-gray-300 outline-none"
+          >
+            <option value="giria">gíria</option>
+            <option value="sinonimo">sinônimo</option>
+            <option value="rima">rima</option>
+            <option value="custom">outro</option>
+          </select>
+          <button
+            onClick={handleAddWord}
+            disabled={saving || !newWord.trim()}
+            className="bg-purple-700/60 hover:bg-purple-600/70 disabled:opacity-40 text-white text-sm font-bold px-3 py-1 rounded transition"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Words grouped by category */}
+        {userWords.length === 0 ? (
+          <p className="text-xs text-gray-600 text-center py-4">Nenhuma palavra salva ainda.</p>
+        ) : (
+          <div className="space-y-4">
+            {(['giria', 'sinonimo', 'rima', 'custom'] as WordCategory[]).map((cat) => {
+              const catWords = userWords.filter(w => w.category === cat)
+              if (catWords.length === 0) return null
+              return (
+                <div key={cat}>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1.5">
+                    {CATEGORY_LABELS[cat]}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {catWords.map((w) => (
+                      <div
+                        key={w.id}
+                        className={`flex items-center gap-1 rounded border px-2 py-1 group transition ${CATEGORY_STYLES[cat as WordCategory]}`}
+                      >
+                        <button
+                          onClick={() => onInsertWord(w.word)}
+                          className="text-xs font-medium hover:brightness-125 transition"
+                        >
+                          {w.word}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(w.id)}
+                          className="text-[11px] leading-none text-current opacity-0 group-hover:opacity-50 hover:!opacity-100 transition ml-0.5"
+                          title="Remover"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
