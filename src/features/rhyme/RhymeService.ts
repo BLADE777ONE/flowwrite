@@ -1,7 +1,7 @@
 // Motor de rimas — integra dicionário curado + matching fonético PT-BR
 import { lookupDictionary } from './rhymeDictionary'
 import { toPhoneticKey, extractRhymeNucleus, extractEndWord, hasAssonance } from './phoneticUtils'
-import { classifyRhymeType, detectRhymeScheme, getRhymeColor, getRhymeLabel } from './rhymeScoring'
+import { classifyRhymeType, detectRhymeScheme, getPredictableEndingLabel, getRhymeColor, getRhymeLabel } from './rhymeScoring'
 import type {
   RhymeType,
   RhymeMatch,
@@ -19,6 +19,11 @@ export interface RhymeSuggestion {
   word: string
   type: RhymeType
   score: number
+  lane: 'forte' | 'criativa' | 'inclinada' | 'frase' | 'simples'
+  source: 'curated' | 'bank' | 'index' | 'phrase' | 'suffix'
+  phoneticKey: string
+  ending: string
+  reason: string
 }
 
 const WORD_BANK: readonly string[] = WORD_BANK_JSON
@@ -154,6 +159,25 @@ function scoreBySuffix(normA: string, normB: string): number {
     }
   }
   return 0
+}
+
+function classifySuggestionLane(word: string, type: RhymeType, score: number, source: RhymeSuggestion['source']): RhymeSuggestion['lane'] {
+  if (source === 'phrase' || word.includes(' ')) return 'frase'
+  if (type === 'rich' || type === 'multisyllabic') return 'criativa'
+  if (type === 'assonance' || (score >= 0.4 && score < 0.65)) return 'inclinada'
+  if (score >= 0.82 && type !== 'poor') return 'forte'
+  return 'simples'
+}
+
+function describeSuggestion(type: RhymeType, score: number, source: RhymeSuggestion['source']): string {
+  if (source === 'curated') return 'curada para rap/trap'
+  if (source === 'phrase') return 'frase pronta para fechamento'
+  if (type === 'multisyllabic') return 'encaixe multissilábico'
+  if (type === 'rich') return 'rima rica/incomum'
+  if (type === 'assonance') return 'rima inclinada por vogal'
+  if (type === 'poor') return 'rima previsível'
+  if (score >= 0.85) return 'som final muito próximo'
+  return 'aproximação fonética'
 }
 
 function splitIntoRhymeStanzas(text: string): RhymeStanza[] {
@@ -317,18 +341,41 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
   if (!input || input.length < 2) return []
 
   const normInput = normalize(input)
-  const seen = new Set<string>()
+  const seen = new Map<string, number>()
   const results: RhymeSuggestion[] = []
 
-  function addResult(word: string, score: number, scoreBoost = 0) {
+  function addResult(word: string, score: number, source: RhymeSuggestion['source'], scoreBoost = 0) {
     const key = normalize(word)
-    if (key === normInput || seen.has(key)) return
-    seen.add(key)
-    const finalScore = Math.min(score + scoreBoost, 1.0)
+    if (key === normInput) return
+    const predictablePenalty = getPredictableEndingLabel(word) ? 0.06 : 0
+    const finalScore = Math.max(0, Math.min(score + scoreBoost - predictablePenalty, 1.0))
+    const existingIndex = seen.get(key)
+    if (existingIndex !== undefined) {
+      if (results[existingIndex].score >= finalScore) return
+      const type = classifyRhymeType(finalScore, input, word, false)
+      results[existingIndex] = {
+        word,
+        type,
+        score: finalScore,
+        lane: classifySuggestionLane(word, type, finalScore, source),
+        source,
+        phoneticKey: toPhoneticKey(word),
+        ending: extractRhymeNucleus(word),
+        reason: describeSuggestion(type, finalScore, source),
+      }
+      return
+    }
+    const type = classifyRhymeType(finalScore, input, word, false)
+    seen.set(key, results.length)
     results.push({
       word,
-      type: classifyRhymeType(finalScore, input, word, false),
+      type,
       score: finalScore,
+      lane: classifySuggestionLane(word, type, finalScore, source),
+      source,
+      phoneticKey: toPhoneticKey(word),
+      ending: extractRhymeNucleus(word),
+      reason: describeSuggestion(type, finalScore, source),
     })
   }
 
@@ -336,13 +383,13 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
   const dictWords = lookupDictionary(input)
   for (const w of dictWords) {
     const sc = scoreByNucleus(input, w)
-    addResult(w, sc > 0 ? sc : 0.7, 0.15)
+    addResult(w, sc > 0 ? sc : 0.7, 'curated', 0.15)
   }
 
   // 2. WORD_BANK via núcleo fonético
   for (const candidate of WORD_BANK) {
     const sc = scoreByNucleus(input, candidate)
-    if (sc >= 0.4) addResult(candidate, sc)
+    if (sc >= 0.4) addResult(candidate, sc, 'bank')
   }
 
   // 2b. WORD_INDEX — 15k palavras indexadas por sufixo (pythonprobr/palavras)
@@ -360,7 +407,7 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
     ])
     for (const candidate of indexCandidates) {
       const sc = scoreByNucleus(input, candidate)
-      if (sc >= 0.4) addResult(candidate, sc)
+      if (sc >= 0.4) addResult(candidate, sc, 'index')
     }
   }
 
@@ -372,18 +419,32 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
     // Também testa a frase inteira sem espaço (captura o ditongo completo)
     const scFull = scoreByNucleus(input, phrase.replace(/\s+/g, ''))
     const best = Math.max(sc, scFull)
-    if (best >= 0.4) addResult(phrase, best, 0.05)
+    if (best >= 0.4) addResult(phrase, best, 'phrase', 0.08)
   }
 
   // 4. Fallback: sufixo de caracteres normalizados (garante resultados mínimos)
   if (results.length < 3) {
     for (const candidate of WORD_BANK) {
       const sc = scoreBySuffix(normInput, normalize(candidate))
-      if (sc > 0) addResult(candidate, sc)
+      if (sc > 0) addResult(candidate, sc, 'suffix')
     }
   }
 
-  return results.sort((a, b) => b.score - a.score).slice(0, limit)
+  const lanePriority: Record<RhymeSuggestion['lane'], number> = {
+    forte: 5,
+    criativa: 4,
+    frase: 3,
+    inclinada: 2,
+    simples: 1,
+  }
+
+  return results
+    .sort((a, b) => {
+      const laneDiff = lanePriority[b.lane] - lanePriority[a.lane]
+      if (laneDiff !== 0) return laneDiff
+      return b.score - a.score
+    })
+    .slice(0, limit)
 }
 
 // Compatibilidade retroativa com App.tsx

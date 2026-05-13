@@ -49,6 +49,23 @@ function uniq(items: string[]): string[] {
   return out
 }
 
+function scoreCategoryMatch(rawWord: string, category: UrbanCategory): number {
+  const norm = normalize(rawWord)
+  const compact = compactKey(rawWord)
+  let score = 0
+
+  for (const key of category.keys) {
+    const keyNorm = normalize(key)
+    const keyCompact = compactKey(key)
+    if (!keyNorm) continue
+    if (norm === keyNorm || compact === keyCompact) score = Math.max(score, 1)
+    else if (norm.includes(keyNorm) || keyNorm.includes(norm)) score = Math.max(score, 0.72)
+    else if (compact.includes(keyCompact) || keyCompact.includes(compact)) score = Math.max(score, 0.62)
+  }
+
+  return score
+}
+
 function getUrbanEntry(rawWord: string): DictionaryResult {
   const lookup = urbanDatabase.lookup as Record<string, UrbanLookupEntry>
   const categories = urbanDatabase.categories as UrbanCategory[]
@@ -59,7 +76,23 @@ function getUrbanEntry(rawWord: string): DictionaryResult {
   const entry = lookup[norm] ?? lookup[compact]
 
   if (!entry) {
-    return { girias: [], sinonimos: [], relacionados: [], antonimos: [] }
+    const fallbackCategories = categories
+      .map(category => ({ category, score: scoreCategoryMatch(rawWord, category) }))
+      .filter(item => item.score >= 0.6)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(item => item.category)
+
+    return {
+      girias: uniq(fallbackCategories.flatMap(category => category.girias))
+        .filter(item => normalize(item) !== norm)
+        .slice(0, 32),
+      sinonimos: [],
+      relacionados: uniq(fallbackCategories.flatMap(category => category.sinonimos))
+        .filter(item => normalize(item) !== norm)
+        .slice(0, 32),
+      antonimos: [],
+    }
   }
 
   const categoryData = (entry.categoryIds ?? [])

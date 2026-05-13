@@ -42,6 +42,22 @@ const typeBadge: Record<string, string> = {
   internal: 'bg-orange-900/60 text-orange-300 border-orange-700',
 }
 
+const rhymeLaneTitle: Record<RhymeSuggestion['lane'], string> = {
+  forte: 'Fechamentos fortes',
+  criativa: 'Rimas criativas',
+  inclinada: 'Inclinadas / trap pocket',
+  frase: 'Frases de fechamento',
+  simples: 'Simples',
+}
+
+const rhymeLaneStyle: Record<RhymeSuggestion['lane'], string> = {
+  forte: 'border-emerald-800/50 bg-emerald-950/20 text-emerald-200',
+  criativa: 'border-purple-700/55 bg-purple-950/25 text-purple-200',
+  inclinada: 'border-cyan-800/50 bg-cyan-950/20 text-cyan-200',
+  frase: 'border-fuchsia-800/50 bg-fuchsia-950/20 text-fuchsia-200',
+  simples: 'border-white/[0.08] bg-white/[0.035] text-gray-200',
+}
+
 function TabButton({ tab, activeTab, onTabChange, children }: {
   tab: ActiveToolTab
   activeTab: ActiveToolTab
@@ -550,9 +566,35 @@ function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
   )
 }
 
-function RhymesTab({ selectedWord, lines }: { selectedWord: string; lines: string[] }) {
-  const rhymes = findRhymesTyped(selectedWord, 48)
+function RhymeSuggestionCard({ rhyme, onInsertWord }: { rhyme: RhymeSuggestion; onInsertWord: (word: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onInsertWord(rhyme.word)}
+      className={`w-full text-left rounded-md border px-2.5 py-2 transition hover:border-purple-400/70 hover:bg-white/[0.055] ${rhymeLaneStyle[rhyme.lane]}`}
+      title={`${rhyme.reason} · ${Math.round(rhyme.score * 100)}%`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-semibold leading-snug">{rhyme.word}</span>
+        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black uppercase tracking-wider flex-shrink-0 ${typeBadge[rhyme.type] ?? typeBadge.approximate}`}>
+          {typeLabel[rhyme.type] ?? rhyme.type}
+        </span>
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-2 text-[10px] opacity-70">
+        <span className="truncate">{rhyme.reason}</span>
+        <span className="font-mono flex-shrink-0">{Math.round(rhyme.score * 100)}%</span>
+      </div>
+    </button>
+  )
+}
+
+function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string; lines: string[]; onInsertWord: (word: string) => void }) {
+  const rhymes = findRhymesTyped(selectedWord, 72)
   const analysis = analyzeRhymes(lines.join('\n'))
+  const grouped = rhymes.reduce<Record<RhymeSuggestion['lane'], RhymeSuggestion[]>>((acc, rhyme) => {
+    acc[rhyme.lane].push(rhyme)
+    return acc
+  }, { forte: [], criativa: [], inclinada: [], frase: [], simples: [] })
 
   return (
     <div>
@@ -567,26 +609,30 @@ function RhymesTab({ selectedWord, lines }: { selectedWord: string; lines: strin
       </div>
       {rhymes.length > 0 ? (
         <>
-          <div className="flex flex-wrap gap-1 mb-4">
-            {(['exact', 'approximate', 'assonance', 'rich', 'multisyllabic'] as const).map(type => {
-              const count = rhymes.filter(rhyme => rhyme.type === type).length
-              if (!count) return null
+          <div className="rounded-md border border-cyan-800/30 bg-cyan-950/10 p-3 mb-4">
+            <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">Radar de rima</p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              Clique para substituir no editor. Use fortes para fechamento, criativas para punch e inclinadas para trap/off-beat.
+            </p>
+          </div>
+          <div className="space-y-4">
+            {(['forte', 'criativa', 'frase', 'inclinada', 'simples'] as RhymeSuggestion['lane'][]).map(lane => {
+              const laneRhymes = grouped[lane].slice(0, lane === 'simples' ? 8 : 12)
+              if (laneRhymes.length === 0) return null
               return (
-                <span key={type} className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${typeBadge[type]}`}>
-                  {typeLabel[type]} {count}
-                </span>
+                <section key={lane}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">{rhymeLaneTitle[lane]}</p>
+                    <span className="text-[10px] text-gray-600 font-mono">{laneRhymes.length}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {laneRhymes.map((rhyme) => (
+                      <RhymeSuggestionCard key={`${rhyme.word}-${rhyme.lane}`} rhyme={rhyme} onInsertWord={onInsertWord} />
+                    ))}
+                  </div>
+                </section>
               )
             })}
-          </div>
-          <div className="space-y-1.5">
-            {rhymes.map((rhyme: RhymeSuggestion, index: number) => (
-              <div key={index} className="flex items-center justify-between bg-[#19191f] border border-[#2b2b36] px-3 py-2 rounded-md hover:border-purple-500/70 cursor-pointer transition group">
-                <span className="text-sm text-gray-200 group-hover:text-white font-medium">{rhyme.word}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ml-2 flex-shrink-0 ${typeBadge[rhyme.type] ?? typeBadge.approximate}`}>
-                  {typeLabel[rhyme.type] ?? rhyme.type}
-                </span>
-              </div>
-            ))}
           </div>
         </>
       ) : (
@@ -686,6 +732,7 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
     dictResult &&
     (dictResult.girias.length > 0 || dictResult.sinonimos.length > 0 || dictResult.relacionados.length > 0 || dictResult.antonimos.length > 0),
   )
+  const rhymeIdeas = selectedWord ? findRhymesTyped(selectedWord, 18) : []
 
   return (
     <div>
@@ -713,6 +760,27 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
         </div>
       ) : (
         <div className="space-y-5 mb-6">
+          {rhymeIdeas.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Rimas úteis</p>
+                <span className="text-[10px] text-cyan-400 font-mono">{rhymeIdeas.length}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {rhymeIdeas.slice(0, 10).map((rhyme) => (
+                  <button
+                    key={`${rhyme.word}-${rhyme.lane}`}
+                    onClick={() => onInsertWord(rhyme.word)}
+                    title={rhyme.reason}
+                    className={`min-w-0 rounded-md border px-2 py-1.5 text-left transition hover:border-cyan-400/60 ${rhymeLaneStyle[rhyme.lane]}`}
+                  >
+                    <span className="block truncate text-xs font-semibold">{rhyme.word}</span>
+                    <span className="block truncate text-[9px] opacity-60">{rhyme.lane}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           <DictionarySection title="Gírias / Urbano" words={dictResult?.girias ?? []} onInsertWord={onInsertWord}
             className="bg-purple-900/20 text-purple-300 border-purple-700/50 hover:border-purple-400 hover:bg-purple-900/40" />
           <DictionarySection title="Sinônimos" words={dictResult?.sinonimos ?? []} onInsertWord={onInsertWord}
@@ -947,7 +1015,7 @@ export function RightPanel({
 
       <div className="p-4 flex-1 overflow-y-auto editor-scroll">
         {activeTab === 'metrics' && <MetricsTab lines={lines} />}
-        {activeTab === 'rhymes' && <RhymesTab selectedWord={selectedWord} lines={lines} />}
+        {activeTab === 'rhymes' && <RhymesTab selectedWord={selectedWord} lines={lines} onInsertWord={onInsertWord} />}
         {activeTab === 'dictionary' && (
           <DictionaryTab
             selectedWord={selectedWord}
