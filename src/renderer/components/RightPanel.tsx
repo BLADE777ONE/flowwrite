@@ -230,7 +230,7 @@ function RhymeSchemeBlockCard({ block }: { block: RhymeSchemeBlock }) {
     <div className="rounded-md border border-[#2b2b36] bg-[#17171d] p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
-          Bloco {Math.floor(block.startLine / 4) + 1}
+          Estrofe {block.stanzaIndex + 1}.{block.blockIndex + 1}
         </p>
         <span className={`text-[10px] px-2 py-0.5 rounded-full border font-black tracking-wider ${schemeTone(block.type)}`}>
           {block.type}

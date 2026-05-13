@@ -1,6 +1,6 @@
 // Motor de rimas — integra dicionário curado + matching fonético PT-BR
 import { lookupDictionary } from './rhymeDictionary'
-import { toPhoneticKey, extractRhymeNucleus, extractEndWord, splitLines, hasAssonance } from './phoneticUtils'
+import { toPhoneticKey, extractRhymeNucleus, extractEndWord, hasAssonance } from './phoneticUtils'
 import { classifyRhymeType, detectRhymeScheme, getRhymeColor, getRhymeLabel } from './rhymeScoring'
 import type {
   RhymeType,
@@ -22,6 +22,11 @@ export interface RhymeSuggestion {
 
 const WORD_BANK: readonly string[] = WORD_BANK_JSON
 const PHRASE_BANK: readonly string[] = PHRASE_BANK_JSON
+
+interface RhymeStanza {
+  startLine: number
+  lines: string[]
+}
 
 function normalize(word: string): string {
   return word
@@ -119,6 +124,35 @@ function scoreBySuffix(normA: string, normB: string): number {
   return 0
 }
 
+function splitIntoRhymeStanzas(text: string): RhymeStanza[] {
+  const stanzas: RhymeStanza[] = []
+  let currentLines: string[] = []
+  let currentStartLine = 0
+  let nonEmptyLineIndex = 0
+
+  const flush = () => {
+    if (currentLines.length === 0) return
+    stanzas.push({ startLine: currentStartLine, lines: currentLines })
+    currentLines = []
+  }
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim()
+
+    if (!line) {
+      flush()
+      continue
+    }
+
+    if (currentLines.length === 0) currentStartLine = nonEmptyLineIndex
+    currentLines.push(line)
+    nonEmptyLineIndex++
+  }
+
+  flush()
+  return stanzas
+}
+
 function classifySchemePattern(pattern: string): { type: RhymeScheme; description: string; confidence: number } {
   const clean = pattern.replace(/-/g, '')
 
@@ -187,7 +221,13 @@ function buildSchemeLabels(endWords: string[]): (string | null)[] {
   return labels
 }
 
-function buildSchemeBlocks(labels: (string | null)[], endWords: string[], blockSize = 4): RhymeSchemeBlock[] {
+function buildSchemeBlocks(
+  labels: (string | null)[],
+  endWords: string[],
+  stanzaIndex: number,
+  lineOffset: number,
+  blockSize = 4,
+): RhymeSchemeBlock[] {
   const blocks: RhymeSchemeBlock[] = []
 
   for (let start = 0; start < labels.length; start += blockSize) {
@@ -199,8 +239,10 @@ function buildSchemeBlocks(labels: (string | null)[], endWords: string[], blockS
     const classified = classifySchemePattern(pattern)
 
     blocks.push({
-      startLine: start,
-      endLine: start + blockLabels.length - 1,
+      startLine: lineOffset + start,
+      endLine: lineOffset + start + blockLabels.length - 1,
+      stanzaIndex,
+      blockIndex: Math.floor(start / blockSize),
       pattern,
       labels: blockLabels,
       endWords: blockEndWords,
@@ -217,6 +259,26 @@ function getOverallScheme(blocks: RhymeSchemeBlock[]): RhymeScheme {
   if (useful.length === 0) return 'free'
   const first = useful[0].type
   return useful.every(block => block.type === first) ? first : 'mixed'
+}
+
+function buildSchemeData(stanzas: RhymeStanza[], endWords: string[]) {
+  const schemeLineLabels: (string | null)[] = new Array(endWords.length).fill(null)
+  const schemeBlocks: RhymeSchemeBlock[] = []
+
+  stanzas.forEach((stanza, stanzaIndex) => {
+    const stanzaEndWords = endWords.slice(stanza.startLine, stanza.startLine + stanza.lines.length)
+    const stanzaLabels = buildSchemeLabels(stanzaEndWords)
+
+    stanzaLabels.forEach((label, index) => {
+      schemeLineLabels[stanza.startLine + index] = label
+    })
+
+    schemeBlocks.push(
+      ...buildSchemeBlocks(stanzaLabels, stanzaEndWords, stanzaIndex, stanza.startLine),
+    )
+  })
+
+  return { schemeLineLabels, schemeBlocks }
 }
 
 export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
@@ -280,11 +342,11 @@ export function findRhymes(input: string, limit = 10): string[] {
 
 // Análise completa de rimas em um texto (usado por ArtistDNAService e analysisWorker)
 export function analyzeRhymes(text: string): RhymeAnalysis {
-  const lines = splitLines(text)
+  const stanzas = splitIntoRhymeStanzas(text)
+  const lines = stanzas.flatMap(stanza => stanza.lines)
   const endWords = lines.map(extractEndWord)
   const phoneticKeys = endWords.map(w => toPhoneticKey(w))
-  const schemeLineLabels = buildSchemeLabels(endWords)
-  const schemeBlocks = buildSchemeBlocks(schemeLineLabels, endWords)
+  const { schemeLineLabels, schemeBlocks } = buildSchemeData(stanzas, endWords)
 
   // Encontra pares de linhas que rimam
   const matches: RhymeMatch[] = []
@@ -293,49 +355,54 @@ export function analyzeRhymes(text: string): RhymeAnalysis {
   const chains: RhymeChain[] = []
   const lineLabels: (string | null)[] = new Array(lines.length).fill(null)
 
-  for (let i = 0; i < endWords.length; i++) {
-    if (!endWords[i]) continue
-    const nucA = extractRhymeNucleus(endWords[i])
+  for (const stanza of stanzas) {
+    const start = stanza.startLine
+    const end = stanza.startLine + stanza.lines.length
 
-    for (let j = i + 1; j < endWords.length; j++) {
-      if (!endWords[j]) continue
-      const score = scoreByNucleus(endWords[i], endWords[j])
-      if (score < 0.4) continue
+    for (let i = start; i < end; i++) {
+      if (!endWords[i]) continue
+      const nucA = extractRhymeNucleus(endWords[i])
 
-      const type = classifyRhymeType(score, endWords[i], endWords[j], false)
-      const matchId = `${i}-${j}`
+      for (let j = i + 1; j < end; j++) {
+        if (!endWords[j]) continue
+        const score = scoreByNucleus(endWords[i], endWords[j])
+        if (score < 0.4) continue
 
-      // Determina cadeia de rima (cluster por núcleo fonético)
-      let chainIdx = chainMap.get(nucA)
-      if (chainIdx === undefined) {
-        chainIdx = chains.length
-        const label = getRhymeLabel(chainIdx)
-        const color = getRhymeColor(chainIdx)
-        chains.push({ id: `chain-${chainIdx}`, label, color, words: [], lines: [], type })
-        chainMap.set(nucA, chainIdx)
+        const type = classifyRhymeType(score, endWords[i], endWords[j], false)
+        const matchId = `${i}-${j}`
+
+        // Determina cadeia de rima dentro dos blocos separados por linha em branco.
+        let chainIdx = chainMap.get(nucA)
+        if (chainIdx === undefined) {
+          chainIdx = chains.length
+          const label = getRhymeLabel(chainIdx)
+          const color = getRhymeColor(chainIdx)
+          chains.push({ id: `chain-${chainIdx}`, label, color, words: [], lines: [], type })
+          chainMap.set(nucA, chainIdx)
+        }
+        const chain = chains[chainIdx]
+        if (!chain.words.includes(endWords[i])) chain.words.push(endWords[i])
+        if (!chain.words.includes(endWords[j])) chain.words.push(endWords[j])
+        if (!chain.lines.includes(i)) chain.lines.push(i)
+        if (!chain.lines.includes(j)) chain.lines.push(j)
+        lineLabels[i] = chain.label
+        lineLabels[j] = chain.label
+
+        matches.push({
+          id: matchId,
+          sourceWord: endWords[i],
+          targetWord: endWords[j],
+          sourceLine: i,
+          targetLine: j,
+          score,
+          type,
+          rhymeClass: chain.label,
+          color: chain.color,
+          phoneticSource: phoneticKeys[i],
+          phoneticTarget: phoneticKeys[j],
+          isInternal: false,
+        })
       }
-      const chain = chains[chainIdx]
-      if (!chain.words.includes(endWords[i])) chain.words.push(endWords[i])
-      if (!chain.words.includes(endWords[j])) chain.words.push(endWords[j])
-      if (!chain.lines.includes(i)) chain.lines.push(i)
-      if (!chain.lines.includes(j)) chain.lines.push(j)
-      lineLabels[i] = chain.label
-      lineLabels[j] = chain.label
-
-      matches.push({
-        id: matchId,
-        sourceWord: endWords[i],
-        targetWord: endWords[j],
-        sourceLine: i,
-        targetLine: j,
-        score,
-        type,
-        rhymeClass: chain.label,
-        color: chain.color,
-        phoneticSource: phoneticKeys[i],
-        phoneticTarget: phoneticKeys[j],
-        isInternal: false,
-      })
     }
   }
 
@@ -353,7 +420,9 @@ export function analyzeRhymes(text: string): RhymeAnalysis {
   // Usa todas as linhas, inclusive as que não repetem rima, para não achatar padrões.
   const legacyScheme = detectRhymeScheme(lineLabels)
   const scheme = getOverallScheme(schemeBlocks) || legacyScheme
-  const schemePattern = schemeLineLabels.map(label => label ?? '-').join('')
+  const schemePattern = schemeBlocks.length > 0
+    ? schemeBlocks.map(block => block.pattern).join(' / ')
+    : schemeLineLabels.map(label => label ?? '-').join('')
 
   // Sugestões para linhas sem rima
   const suggestions: RhymeSuggestionType[] = endWords

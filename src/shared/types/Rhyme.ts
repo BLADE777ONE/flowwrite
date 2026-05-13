@@ -15,6 +15,8 @@ export type RhymeScheme = string
 export interface RhymeSchemeBlock {
   startLine: number
   endLine: number
+  stanzaIndex: number
+  blockIndex: number
   pattern: string
   type: RhymeScheme
   labels: (string | null)[]
