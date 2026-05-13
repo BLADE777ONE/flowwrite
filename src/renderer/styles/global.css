@@ -1,0 +1,370 @@
+/* src/renderer/styles/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-studio-bg text-text-primary font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ─── Scrollbar global (painéis escuros) ─────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.08);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(124,58,237,0.5);
+  }
+
+  /* ─── Scrollbar para área do editor ──────────────────────────────────────── */
+  .editor-scroll::-webkit-scrollbar { width: 5px; }
+  .editor-scroll::-webkit-scrollbar-track { background: transparent; }
+  .editor-scroll::-webkit-scrollbar-thumb {
+    background: #d0cae0;
+    border-radius: 99px;
+  }
+  .editor-scroll::-webkit-scrollbar-thumb:hover {
+    background: #9d5cf0;
+  }
+}
+
+@layer components {
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GLASS — painel com efeito glassmorphism
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .glass {
+    background: rgba(13, 13, 26, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .glass-light {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     EDITOR — área de escrita (fundo claro, como papel)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .tiptap-editor .ProseMirror {
+    background: transparent;
+    color: #e2e0e0;
+    @apply outline-none font-mono text-xl leading-relaxed;
+    width: 100%;
+    max-width: 920px;
+    margin: 0 auto;
+    min-height: 100%;
+    padding: 3rem 4rem 7rem;
+    caret-color: theme('colors.accent.primary');
+    letter-spacing: 0.012em;
+  }
+
+  .tiptap-editor .ProseMirror p {
+    margin-bottom: 0.28rem;
+  }
+
+  .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: rgba(200, 190, 230, 0.35);
+    pointer-events: none;
+    float: left;
+    height: 0;
+    font-style: italic;
+  }
+
+  /* ─── Highlights de rima ─────────────────────────────────────────────────── */
+  .rhyme-highlight {
+    border-radius: 4px;
+    padding: 1px 3px;
+    transition: all 0.15s ease;
+  }
+  .rhyme-highlight:hover { filter: brightness(0.85); }
+
+  /* ─── Clichê ─────────────────────────────────────────────────────────────── */
+  .cliche-low    { text-decoration: underline dotted theme('colors.accent.gold');  text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .cliche-medium { text-decoration: underline dotted theme('colors.accent.amber'); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .cliche-high   { text-decoration: underline wavy  theme('colors.accent.red');    text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+  /* ─── Rima interna ───────────────────────────────────────────────────────── */
+  .rhyme-internal {
+    text-decoration: underline dashed rgba(124,58,237,0.5);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TOOLBAR DO EDITOR
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .editor-toolbar-btn {
+    @apply flex flex-col items-center justify-center gap-0.5 rounded-lg
+           px-2 py-1.5 min-w-[2.4rem]
+           text-paper-muted cursor-pointer select-none
+           border border-transparent
+           transition-all duration-200;
+  }
+  .editor-toolbar-btn:hover:not(.active) {
+    @apply text-paper-text border-paper-border;
+    background: rgba(0,0,0,0.06);
+  }
+  .editor-toolbar-btn.active {
+    @apply text-accent-primary border-accent-primary/40;
+    background: rgba(124,58,237,0.1);
+    box-shadow: 0 0 12px rgba(124,58,237,0.15), inset 0 1px 0 rgba(124,58,237,0.1);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TABS DOS PAINÉIS
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .panel-tab {
+    @apply flex flex-col items-center gap-0.5 py-2 px-2.5
+           text-xs font-medium cursor-pointer select-none whitespace-nowrap
+           transition-all duration-200;
+    color: theme('colors.text.muted');
+    border-bottom: 2px solid transparent;
+  }
+  .panel-tab.active {
+    color: theme('colors.text.primary');
+    border-bottom-color: theme('colors.accent.primary');
+  }
+  .panel-tab:hover:not(.active) {
+    color: theme('colors.text.secondary');
+    border-bottom-color: rgba(255,255,255,0.1);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CARDS DE DADOS (painéis escuros)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .data-card {
+    @apply rounded-xl border;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    border-color: rgba(255,255,255,0.06);
+  }
+
+  .data-card-accent {
+    @apply rounded-xl border;
+    background: linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(124,58,237,0.04) 100%);
+    border-color: rgba(124,58,237,0.2);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BLOCOS DE SEÇÃO (no editor)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .section-block-node {
+    user-select: none;
+    margin: 1.25rem 0 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+  .section-block-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.75rem;
+    border-radius: 99px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: theme('fontFamily.mono');
+    background-color: color-mix(in srgb, var(--section-color, #7c3aed) 14%, transparent);
+    color: var(--section-color, #7c3aed);
+    border: 1px solid color-mix(in srgb, var(--section-color, #7c3aed) 35%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--section-color, #7c3aed) 20%, transparent);
+  }
+  .section-block-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--section-color, #7c3aed) 40%, transparent),
+      transparent
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     GHOST NOTES VIEW
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .ghost-notes-view {
+    background-color: theme('colors.paper.bg');
+    color: theme('colors.paper.text');
+    @apply h-full overflow-y-auto font-mono text-[15.5px] leading-[2.15];
+    padding: 2.5rem 2rem 6rem;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SIDEBAR — itens de projeto
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .project-item {
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer
+           transition-all duration-200 border border-transparent;
+  }
+  .project-item:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.06);
+  }
+  .project-item.active {
+    background: rgba(124,58,237,0.12);
+    border-color: rgba(124,58,237,0.25);
+    box-shadow: 0 0 16px rgba(124,58,237,0.08);
+  }
+
+  .song-item {
+    @apply flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer
+           transition-all duration-150;
+  }
+  .song-item:hover { background: rgba(255,255,255,0.04); }
+  .song-item.active {
+    background: rgba(124,58,237,0.1);
+    color: theme('colors.accent.bright');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BADGES e PILLS
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .score-badge {
+    @apply px-2 py-0.5 rounded-lg text-xs font-bold font-mono;
+  }
+
+  .vibe-pill {
+    @apply text-[9px] px-2 py-0.5 rounded-full font-semibold
+           transition-all duration-150 cursor-pointer select-none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     PROGRESS BARS
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .progress-track {
+    @apply w-full rounded-full overflow-hidden;
+    background: rgba(255,255,255,0.06);
+    height: 6px;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-700;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     INPUTS
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .studio-input {
+    @apply bg-transparent border rounded-lg px-3 py-1.5 text-xs
+           text-text-primary placeholder-text-muted outline-none
+           transition-all duration-200;
+    border-color: rgba(255,255,255,0.1);
+  }
+  .studio-input:focus {
+    border-color: rgba(124,58,237,0.5);
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+  }
+
+  .studio-btn {
+    @apply flex items-center justify-center gap-1.5 rounded-lg
+           px-3 py-1.5 text-xs font-semibold
+           transition-all duration-200 cursor-pointer select-none;
+  }
+  .studio-btn-primary {
+    @apply studio-btn;
+    background: linear-gradient(135deg, #7c3aed, #9d5cf0);
+    color: white;
+    box-shadow: 0 2px 12px rgba(124,58,237,0.35);
+  }
+  .studio-btn-primary:hover {
+    background: linear-gradient(135deg, #8b47f5, #a855f7);
+    box-shadow: 0 4px 20px rgba(124,58,237,0.5);
+    transform: translateY(-1px);
+  }
+  .studio-btn-primary:active { transform: translateY(0); }
+
+  .studio-btn-ghost {
+    @apply studio-btn;
+    color: theme('colors.text.muted');
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .studio-btn-ghost:hover {
+    color: theme('colors.text.primary');
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     RHYME CHAIN DOT
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .rhyme-chain-dot {
+    @apply inline-block w-2.5 h-2.5 rounded-full;
+  }
+}
+
+/* ─── Scrollbar invisível ─────────────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ─── Animações extras ────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(124,58,237,0.3); }
+  50%       { box-shadow: 0 0 28px rgba(124,58,237,0.6); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in  { animation: fadeIn 0.22s ease-out; }
+.animate-slide-in { animation: slideIn 0.22s ease-out; }
+.glow-pulse       { animation: glowPulse 3s ease-in-out infinite; }
+
+@keyframes bounceDot {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+/* ─── Seleção de texto (editor claro) ────────────────────────────────────── */
+.tiptap-editor .ProseMirror ::selection {
+  background: rgba(124,58,237,0.18);
+}
+
+/* ─── Gradiente acento sidebar ───────────────────────────────────────────── */
+.sidebar-gradient-border {
+  background: linear-gradient(180deg, #7c3aed22 0%, transparent 60%);
+}
