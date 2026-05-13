@@ -2,7 +2,15 @@
 import { lookupDictionary } from './rhymeDictionary'
 import { toPhoneticKey, extractRhymeNucleus, extractEndWord, splitLines, hasAssonance } from './phoneticUtils'
 import { classifyRhymeType, detectRhymeScheme, getRhymeColor, getRhymeLabel } from './rhymeScoring'
-import type { RhymeType, RhymeMatch, RhymeChain, RhymeAnalysis, RhymeSuggestion as RhymeSuggestionType } from '../../shared/types/Rhyme'
+import type {
+  RhymeType,
+  RhymeMatch,
+  RhymeChain,
+  RhymeAnalysis,
+  RhymeScheme,
+  RhymeSchemeBlock,
+  RhymeSuggestion as RhymeSuggestionType,
+} from '../../shared/types/Rhyme'
 import WORD_BANK_JSON from './wordBank.json'
 import PHRASE_BANK_JSON from './phraseBank.json'
 
@@ -89,6 +97,106 @@ function scoreBySuffix(normA: string, normB: string): number {
   return 0
 }
 
+function classifySchemePattern(pattern: string): { type: RhymeScheme; description: string; confidence: number } {
+  const clean = pattern.replace(/-/g, '')
+
+  if (clean.length < 2) {
+    return { type: 'free', description: 'Livre: ainda não há versos suficientes para formar esquema.', confidence: 0 }
+  }
+
+  const known: Record<string, { description: string; confidence: number }> = {
+    AABB: { description: 'Pareado: duas linhas rimam entre si e as duas seguintes fecham outro par.', confidence: 1 },
+    ABAB: { description: 'Alternado: a primeira linha conversa com a terceira, a segunda com a quarta.', confidence: 1 },
+    ABCB: { description: 'Balada/quadrinha: a segunda e a quarta linha fecham a rima; primeira e terceira ficam livres.', confidence: 0.95 },
+    ABBA: { description: 'Interpolado: a primeira fecha com a quarta, e o centro fecha em par.', confidence: 0.95 },
+    AAAA: { description: 'Monorrima: todas as linhas caem no mesmo som.', confidence: 1 },
+    AABA: { description: 'Retorno: três linhas no mesmo som, com uma quebra no terceiro movimento.', confidence: 0.9 },
+    ABCA: { description: 'Retorno aberto: a primeira linha volta no fim do bloco.', confidence: 0.85 },
+    ABAC: { description: 'Rima parcial: a primeira linha reaparece na terceira.', confidence: 0.8 },
+    ABCC: { description: 'Fechamento pareado: as duas últimas linhas resolvem juntas.', confidence: 0.85 },
+  }
+
+  if (known[clean]) {
+    return { type: clean, ...known[clean] }
+  }
+
+  const unique = new Set(clean).size
+  const hasRepetition = clean.length !== unique
+  if (!hasRepetition) {
+    return { type: 'free', description: 'Livre: finais sem repetição clara dentro do bloco.', confidence: 0.35 }
+  }
+
+  return {
+    type: 'mixed',
+    description: 'Misto: há rimas, mas o desenho não cai em um padrão clássico.',
+    confidence: 0.65,
+  }
+}
+
+function buildSchemeLabels(endWords: string[]): (string | null)[] {
+  const representatives: Array<{ label: string; word: string }> = []
+  const labels: (string | null)[] = []
+
+  for (const word of endWords) {
+    if (!word) {
+      labels.push(null)
+      continue
+    }
+
+    let bestIdx = -1
+    let bestScore = 0
+    for (let i = 0; i < representatives.length; i++) {
+      const score = scoreByNucleus(word, representatives[i].word)
+      if (score >= 0.4 && score > bestScore) {
+        bestIdx = i
+        bestScore = score
+      }
+    }
+
+    if (bestIdx >= 0) {
+      labels.push(representatives[bestIdx].label)
+    } else {
+      const label = getRhymeLabel(representatives.length)
+      representatives.push({ label, word })
+      labels.push(label)
+    }
+  }
+
+  return labels
+}
+
+function buildSchemeBlocks(labels: (string | null)[], endWords: string[], blockSize = 4): RhymeSchemeBlock[] {
+  const blocks: RhymeSchemeBlock[] = []
+
+  for (let start = 0; start < labels.length; start += blockSize) {
+    const blockLabels = labels.slice(start, start + blockSize)
+    const blockEndWords = endWords.slice(start, start + blockSize)
+    if (blockLabels.filter(Boolean).length < 2) continue
+
+    const pattern = blockLabels.map(label => label ?? '-').join('')
+    const classified = classifySchemePattern(pattern)
+
+    blocks.push({
+      startLine: start,
+      endLine: start + blockLabels.length - 1,
+      pattern,
+      labels: blockLabels,
+      endWords: blockEndWords,
+      ...classified,
+    })
+  }
+
+  return blocks
+}
+
+function getOverallScheme(blocks: RhymeSchemeBlock[]): RhymeScheme {
+  if (blocks.length === 0) return 'free'
+  const useful = blocks.filter(block => block.type !== 'free')
+  if (useful.length === 0) return 'free'
+  const first = useful[0].type
+  return useful.every(block => block.type === first) ? first : 'mixed'
+}
+
 export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
   if (!input || input.length < 2) return []
 
@@ -153,6 +261,8 @@ export function analyzeRhymes(text: string): RhymeAnalysis {
   const lines = splitLines(text)
   const endWords = lines.map(extractEndWord)
   const phoneticKeys = endWords.map(w => toPhoneticKey(w))
+  const schemeLineLabels = buildSchemeLabels(endWords)
+  const schemeBlocks = buildSchemeBlocks(schemeLineLabels, endWords)
 
   // Encontra pares de linhas que rimam
   const matches: RhymeMatch[] = []
@@ -217,8 +327,11 @@ export function analyzeRhymes(text: string): RhymeAnalysis {
   const linesWithRhyme = new Set(matches.flatMap(m => [m.sourceLine, m.targetLine]))
   const rhymeDensity = lines.length > 0 ? linesWithRhyme.size / lines.length : 0
 
-  // Esquema de rima
-  const scheme = detectRhymeScheme(lineLabels)
+  // Esquema de rima posicional (AABB, ABAB, ABCB etc.)
+  // Usa todas as linhas, inclusive as que não repetem rima, para não achatar padrões.
+  const legacyScheme = detectRhymeScheme(lineLabels)
+  const scheme = getOverallScheme(schemeBlocks) || legacyScheme
+  const schemePattern = schemeLineLabels.map(label => label ?? '-').join('')
 
   // Sugestões para linhas sem rima
   const suggestions: RhymeSuggestionType[] = endWords
@@ -292,6 +405,9 @@ export function analyzeRhymes(text: string): RhymeAnalysis {
 
   return {
     scheme,
+    schemePattern,
+    schemeBlocks,
+    lineLabels: schemeLineLabels,
     matches,
     chains,
     rhymeDensity,

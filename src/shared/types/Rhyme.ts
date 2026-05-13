@@ -10,7 +10,18 @@ export type RhymeType =
   | 'assonance'      // assonância — repetição da vogal tônica
   | 'alliteration'   // aliteração — repetição consonantal
 
-export type RhymeScheme = 'AABB' | 'ABAB' | 'ABBA' | 'AAAA' | 'ABCB' | 'AABA' | 'mixed' | 'free'
+export type RhymeScheme = string
+
+export interface RhymeSchemeBlock {
+  startLine: number
+  endLine: number
+  pattern: string
+  type: RhymeScheme
+  labels: (string | null)[]
+  endWords: string[]
+  description: string
+  confidence: number
+}
 
 export interface RhymeMatch {
   id: string
@@ -43,6 +54,9 @@ export interface RhymeChain {
 
 export interface RhymeAnalysis {
   scheme: RhymeScheme
+  schemePattern: string
+  schemeBlocks: RhymeSchemeBlock[]
+  lineLabels: (string | null)[]
   matches: RhymeMatch[]
   chains: RhymeChain[]
   rhymeDensity: number          // 0-1 — proporção de linhas com rima

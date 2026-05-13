@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
+import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
 import { analyzeMetrics } from '../../features/metrics/MetricsService'
 import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
 import type { ActiveToolTab } from '../types'
+import type { RhymeSchemeBlock } from '../../shared/types/Rhyme'
 
 interface RightPanelProps {
   activeTab: ActiveToolTab
@@ -218,11 +219,85 @@ function MetricsTab({ lines }: { lines: string[] }) {
   )
 }
 
-function RhymesTab({ selectedWord }: { selectedWord: string }) {
+function schemeTone(type: string): string {
+  if (type === 'free') return 'text-gray-400 border-gray-800 bg-gray-900/30'
+  if (type === 'mixed') return 'text-yellow-300 border-yellow-800/60 bg-yellow-950/20'
+  return 'text-purple-200 border-purple-700/60 bg-purple-950/30'
+}
+
+function RhymeSchemeBlockCard({ block }: { block: RhymeSchemeBlock }) {
+  return (
+    <div className="rounded-md border border-[#2b2b36] bg-[#17171d] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
+          Bloco {Math.floor(block.startLine / 4) + 1}
+        </p>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-black tracking-wider ${schemeTone(block.type)}`}>
+          {block.type}
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-1">
+        {block.labels.map((label, index) => (
+          <div key={`${block.startLine}-${index}`} className="rounded border border-white/5 bg-black/20 px-1.5 py-2 text-center">
+            <p className="text-[10px] text-gray-600 font-bold">L{block.startLine + index + 1}</p>
+            <p className="text-lg font-black text-purple-200 leading-tight">{label ?? '-'}</p>
+            <p className="text-[10px] text-gray-500 truncate">{block.endWords[index] || '...'}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] text-gray-500 leading-snug mt-3">{block.description}</p>
+    </div>
+  )
+}
+
+function RhymeSchemePanel({ lines }: { lines: string[] }) {
+  const analysis = analyzeRhymes(lines.join('\n'))
+
+  if (analysis.endWords.length < 2) {
+    return (
+      <div className="rounded-md border border-[#2b2b36] bg-[#17171d] p-3 mb-4">
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Esquema de rima</p>
+        <p className="text-xs text-gray-600 mt-2">Escreva ao menos 2 linhas para detectar AABB, ABAB, ABCB e variações.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-5">
+      <div className="rounded-md border border-purple-800/40 bg-purple-950/20 p-3 mb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Esquema de rima</p>
+            <p className="text-[10px] text-gray-600 mt-1">Leitura por posição dos finais de linha.</p>
+          </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full border font-black tracking-wider ${schemeTone(analysis.scheme)}`}>
+            {analysis.scheme.toUpperCase()}
+          </span>
+        </div>
+        <p className="font-mono text-xl text-white tracking-[0.18em] mt-3">{analysis.schemePattern || '----'}</p>
+        <p className="text-[10px] text-gray-500 mt-1">
+          Cada letra representa uma família fonética no fim da linha.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {analysis.schemeBlocks.map(block => (
+          <RhymeSchemeBlockCard key={`${block.startLine}-${block.pattern}`} block={block} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RhymesTab({ selectedWord, lines }: { selectedWord: string; lines: string[] }) {
   const rhymes = findRhymesTyped(selectedWord, 16)
 
   return (
     <div>
+      <RhymeSchemePanel lines={lines} />
+
       <div className="mb-4">
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Rimas</h3>
         <p className="text-sm text-gray-300 mt-1">
@@ -371,7 +446,7 @@ export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoa
 
       <div className="p-4 flex-1 overflow-y-auto">
         {activeTab === 'metrics' && <MetricsTab lines={lines} />}
-        {activeTab === 'rhymes' && <RhymesTab selectedWord={selectedWord} />}
+        {activeTab === 'rhymes' && <RhymesTab selectedWord={selectedWord} lines={lines} />}
         {activeTab === 'dictionary' && (
           <DictionaryTab
             selectedWord={selectedWord}
