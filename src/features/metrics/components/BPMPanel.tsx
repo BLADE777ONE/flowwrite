@@ -92,13 +92,13 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
         </div>
         <div className="flex flex-col items-center w-14">
           <input
-            type="number"
-            min={40}
-            max={240}
+            type="text"
+            inputMode="numeric"
             value={inputVal}
             onChange={handleNumberChange}
             onBlur={commitNumber}
             onKeyDown={e => { if (e.key === 'Enter') commitNumber() }}
+            onFocus={e => e.target.select()}
             className="w-full bg-studio-bg border border-studio-border rounded px-1 py-0.5 text-center text-lg font-bold font-mono text-accent-glow outline-none focus:border-accent-primary"
           />
           <span className="text-[9px] text-text-muted mt-0.5">BPM</span>

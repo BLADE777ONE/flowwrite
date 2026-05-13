@@ -303,16 +303,17 @@ export function CoreEditor() {
         >
           <span className="text-[9px] font-bold tracking-wider" style={{ color: '#9d5cf0' }}>BPM</span>
           <input
-            type="number"
-            min={40} max={240}
+            type="text"
+            inputMode="numeric"
             defaultValue={bpm}
             key={bpm}
             onBlur={e => {
-              const v = parseInt(e.target.value)
+              const v = parseInt(e.target.value, 10)
               if (!isNaN(v) && v >= 40 && v <= 240) setBpm(v)
               else e.target.value = String(bpm)
             }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+            onFocus={e => e.target.select()}
             className="w-9 bg-transparent text-xs font-bold font-mono outline-none text-center"
             style={{ color: '#7c3aed' }}
           />
