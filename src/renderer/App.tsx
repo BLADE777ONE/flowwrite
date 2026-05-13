@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { RhymeHighlightExtension } from '../features/editor/RhymeHighlightExtension'
 import { SectionNode } from '../features/editor/extensions/SectionNode'
+import { LineGutterExtension } from '../features/editor/extensions/LineGutterExtension'
 import { getDictionaryData, type DictionaryResult } from '../features/dictionary/DictionaryService'
 import { Sidebar } from './components/Sidebar'
 import { EditorTopBar } from './components/EditorTopBar'
@@ -58,6 +59,7 @@ export default function App() {
       SectionNode,
       Placeholder.configure({ placeholder: 'Comece a escrever suas barras...' }),
       RhymeHighlightExtension,
+      LineGutterExtension,
     ],
     content: '',
     onUpdate: ({ editor }) => {
