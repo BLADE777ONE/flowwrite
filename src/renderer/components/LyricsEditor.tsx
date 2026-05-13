@@ -1,11 +1,48 @@
 import { EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
+import { analyzeMetrics } from '../../features/metrics/MetricsService'
+import { analyzeRhymes } from '../../features/rhyme/RhymeService'
 
 interface LyricsEditorProps {
   editor: Editor | null
+  lyrics: string
 }
 
-export function LyricsEditor({ editor }: LyricsEditorProps) {
+function EditorStudioStrip({ lyrics }: { lyrics: string }) {
+  const contentLines = lyrics.split('\n').map(line => line.trim()).filter(Boolean)
+  const metrics = analyzeMetrics(lyrics)
+  const rhyme = analyzeRhymes(lyrics)
+  const currentBlock = Math.max(1, Math.ceil(contentLines.length / 4))
+  const activeScheme = rhyme.schemeBlocks.at(-1)?.pattern ?? '----'
+  const averageSyllables = metrics.averageSyllables || 0
+
+  return (
+    <div className="mx-auto max-w-[980px] px-16 pt-5 pb-1">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] uppercase tracking-[0.24em] font-black text-gray-500">
+            Verso {currentBlock}
+          </span>
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.65)]" />
+          <span className="hidden md:inline text-[10px] text-gray-600">
+            {contentLines.length || 0} barras
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 font-mono text-[10px]">
+          <span className="rounded border border-purple-500/30 bg-purple-500/10 px-2 py-1 text-purple-200">
+            {activeScheme}
+          </span>
+          <span className="rounded border border-cyan-500/25 bg-cyan-500/10 px-2 py-1 text-cyan-200">
+            {averageSyllables ? `${averageSyllables} sil.` : '-- sil.'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function LyricsEditor({ editor, lyrics }: LyricsEditorProps) {
   return (
     <main className="flex-1 min-h-0 bg-[#09090d] relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_-30%,rgba(124,58,237,0.16),transparent_60%)] pointer-events-none" />
@@ -19,6 +56,7 @@ export function LyricsEditor({ editor }: LyricsEditorProps) {
             ))}
           </div>
         </div>
+        <EditorStudioStrip lyrics={lyrics} />
         <EditorContent editor={editor} />
       </div>
     </main>

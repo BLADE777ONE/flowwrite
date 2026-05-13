@@ -247,7 +247,7 @@ export default function App() {
           onSave={handleSave}
           onDelete={handleDelete}
         />
-        <LyricsEditor editor={editor} />
+        <LyricsEditor editor={editor} lyrics={lyrics} />
         <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} />
       </div>
 
