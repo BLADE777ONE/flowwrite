@@ -34,7 +34,7 @@
   .editor-scroll::-webkit-scrollbar { width: 5px; }
   .editor-scroll::-webkit-scrollbar-track { background: transparent; }
   .editor-scroll::-webkit-scrollbar-thumb {
-    background: #d0cae0;
+    background: rgba(255,255,255,0.12);
     border-radius: 99px;
   }
   .editor-scroll::-webkit-scrollbar-thumb:hover {
@@ -69,18 +69,46 @@
   .tiptap-editor .ProseMirror {
     background: transparent;
     color: #e2e0e0;
-    @apply outline-none font-mono text-xl leading-relaxed;
+    @apply outline-none font-mono text-[18px] leading-[1.9];
+    counter-reset: lyric-line;
     width: 100%;
-    max-width: 920px;
+    max-width: 980px;
     margin: 0 auto;
-    min-height: 100%;
-    padding: 3rem 4rem 7rem;
+    min-height: calc(100% - 2.25rem);
+    padding: 2.35rem 4rem 6rem;
     caret-color: theme('colors.accent.primary');
     letter-spacing: 0.012em;
   }
 
   .tiptap-editor .ProseMirror p {
-    margin-bottom: 0.28rem;
+    position: relative;
+    margin-bottom: 0.18rem;
+    padding-left: 4.25rem;
+    min-height: 1.9em;
+  }
+
+  .tiptap-editor .ProseMirror p:not(.is-editor-empty)::before {
+    counter-increment: lyric-line;
+    content: counter(lyric-line, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0.2rem;
+    width: 2.5rem;
+    color: rgba(148, 163, 184, 0.36);
+    font-size: 0.68rem;
+    line-height: 1;
+    text-align: right;
+    letter-spacing: 0.08em;
+  }
+
+  .tiptap-editor .ProseMirror p:not(.is-editor-empty)::after {
+    content: "";
+    position: absolute;
+    left: 3rem;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 1px;
+    background: rgba(255,255,255,0.05);
   }
 
   .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {

@@ -228,7 +228,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0b0b0f] text-gray-200 font-sans">
+    <div className="flex h-screen bg-[#050507] text-gray-200 font-sans overflow-hidden">
       <Sidebar
         songs={songs}
         currentProject={currentProject}
@@ -237,7 +237,7 @@ export default function App() {
         onSelectSong={loadSong}
       />
 
-      <div className="flex-1 flex flex-col relative bg-[#101014]">
+      <div className="flex-1 min-w-0 flex flex-col relative bg-[#09090d]">
         <EditorTopBar
           title={title}
           saving={saving}

@@ -47,7 +47,7 @@ function TabButton({ tab, activeTab, onTabChange, children }: {
   return (
     <button
       onClick={() => onTabChange(tab)}
-      className={`flex-1 rounded-md py-2 text-xs font-bold transition ${activeTab === tab ? 'text-white bg-purple-600/80 shadow-[0_0_18px_rgba(124,58,237,0.18)]' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'}`}
+      className={`flex-1 rounded-md py-2 text-[11px] font-black transition ${activeTab === tab ? 'text-white bg-purple-600/80 shadow-[0_0_18px_rgba(124,58,237,0.24)]' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]'}`}
     >
       {children}
     </button>
@@ -532,8 +532,8 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
 
 export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoading, onTabChange, onInsertWord, onInsertLine }: RightPanelProps) {
   return (
-    <div className="w-[22rem] min-w-[20rem] bg-[#131317] border-l border-[#262631] flex flex-col relative">
-      <div className="h-16 border-b border-[#262631] flex items-center justify-between px-4 bg-[#151519] app-region-drag">
+    <aside className="w-[21rem] min-w-[19.5rem] bg-[#08080c] border-l border-white/[0.07] flex flex-col relative shadow-[-12px_0_36px_rgba(0,0,0,0.2)]">
+      <div className="h-16 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0c0c11] app-region-drag">
         <div>
           <span className="text-xs text-gray-500 font-bold tracking-wider">FERRAMENTAS LÍRICAS</span>
           <p className="text-[10px] text-gray-600 mt-1">Métrica, rimas e vocabulário</p>
@@ -541,14 +541,14 @@ export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoa
         <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
       </div>
 
-      <div className="grid grid-cols-4 gap-1 border-b border-[#262631] bg-[#101014] p-2">
+      <div className="grid grid-cols-4 gap-1 border-b border-white/[0.06] bg-black/30 p-2">
         <TabButton tab="metrics" activeTab={activeTab} onTabChange={onTabChange}>Métrica</TabButton>
         <TabButton tab="rhymes" activeTab={activeTab} onTabChange={onTabChange}>Rimas</TabButton>
         <TabButton tab="dictionary" activeTab={activeTab} onTabChange={onTabChange}>Dicionário</TabButton>
         <TabButton tab="assistant" activeTab={activeTab} onTabChange={onTabChange}>Assist.</TabButton>
       </div>
 
-      <div className="p-4 flex-1 overflow-y-auto">
+      <div className="p-4 flex-1 overflow-y-auto editor-scroll">
         {activeTab === 'metrics' && <MetricsTab lines={lines} />}
         {activeTab === 'rhymes' && <RhymesTab selectedWord={selectedWord} lines={lines} />}
         {activeTab === 'dictionary' && (
@@ -561,6 +561,6 @@ export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoa
         )}
         {activeTab === 'assistant' && <AssistantTab lines={lines} onInsertLine={onInsertLine} />}
       </div>
-    </div>
+    </aside>
   )
 }
