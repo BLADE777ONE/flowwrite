@@ -117,6 +117,130 @@ function MetricCard({ label, value, tone = 'default' }: { label: string; value: 
   )
 }
 
+function clampPercent(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function flowMeterLabel(score: number): string {
+  if (score >= 90) return 'EXCELENTE'
+  if (score >= 78) return 'FORTE'
+  if (score >= 62) return 'BOM'
+  return 'AJUSTAR'
+}
+
+function scoreAverageTarget(average: number): number {
+  if (!average) return 0
+  return clampPercent(100 - Math.abs(average - 13) * 7)
+}
+
+function scoreLineFit(lines: LineMetrics[], average: number): number {
+  if (lines.length === 0) return 0
+  const fitted = lines.filter(line => {
+    const diff = Math.abs(line.syllableCount - average)
+    return !line.isTooLong && !line.isTooShort && diff <= 3.5
+  }).length
+  return clampPercent((fitted / lines.length) * 100)
+}
+
+function scoreRhythm(lines: LineMetrics[], regularity: number): number {
+  if (lines.length === 0) return 0
+  const heavyLines = lines.filter(line => line.isTooLong || line.flowSpeed === 'very_fast').length
+  const breathLoad = lines.filter(line => line.breathPoints.length > 0).length
+  return clampPercent(regularity - heavyLines * 8 - breathLoad * 2 + 8)
+}
+
+function MetricProgressRow({ label, value, tone }: { label: string; value: number; tone: 'purple' | 'cyan' | 'green' | 'pink' }) {
+  const colorClass = {
+    purple: 'from-purple-600 to-fuchsia-400',
+    cyan: 'from-cyan-500 to-sky-300',
+    green: 'from-emerald-500 to-lime-300',
+    pink: 'from-fuchsia-500 to-pink-300',
+  }[tone]
+
+  return (
+    <div className="rounded-md border border-white/[0.07] bg-white/[0.03] p-2.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] text-gray-500 uppercase tracking-wider font-black">{label}</span>
+        <span className="text-xs text-gray-200 font-mono font-bold">{value}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-black/50 overflow-hidden">
+        <div className={`h-full rounded-full bg-gradient-to-r ${colorClass}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function FlowMeterDial({
+  score,
+  speed,
+  fit,
+  metric,
+  rhythm,
+}: {
+  score: number
+  speed: number
+  fit: number
+  metric: number
+  rhythm: number
+}) {
+  const circumference = 2 * Math.PI * 48
+  const rings = [
+    { value: metric, radius: 48, stroke: '#a855f7', width: 7 },
+    { value: speed, radius: 39, stroke: '#22d3ee', width: 5 },
+    { value: fit, radius: 31, stroke: '#34d399', width: 4 },
+    { value: rhythm, radius: 24, stroke: '#f472b6', width: 3 },
+  ]
+
+  return (
+    <div className="rounded-lg border border-purple-500/20 bg-[radial-gradient(circle_at_50%_20%,rgba(147,51,234,0.18),rgba(12,12,17,0.92)_58%)] p-4 shadow-[0_0_36px_rgba(124,58,237,0.16)]">
+      <div className="relative mx-auto h-44 w-44">
+        <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90 overflow-visible">
+          {rings.map(ring => {
+            const ringCircumference = 2 * Math.PI * ring.radius
+            return (
+              <g key={`${ring.radius}-${ring.stroke}`}>
+                <circle
+                  cx="60"
+                  cy="60"
+                  r={ring.radius}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth={ring.width}
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r={ring.radius}
+                  fill="none"
+                  stroke={ring.stroke}
+                  strokeWidth={ring.width}
+                  strokeLinecap="round"
+                  strokeDasharray={`${(ring.value / 100) * ringCircumference} ${ringCircumference}`}
+                  className="drop-shadow-[0_0_8px_rgba(168,85,247,0.65)]"
+                />
+              </g>
+            )
+          })}
+          <circle
+            cx="60"
+            cy="60"
+            r="54"
+            fill="none"
+            stroke="rgba(255,255,255,0.03)"
+            strokeWidth="1"
+            strokeDasharray={`${(score / 100) * circumference} ${circumference}`}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <p className="font-mono text-5xl font-black text-white tracking-tight">{score}</p>
+          <p className="text-[10px] text-gray-500 font-black tracking-[0.22em]">/100</p>
+          <p className="mt-1 text-[10px] text-cyan-300 font-black tracking-[0.22em]">{flowMeterLabel(score)}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MetricsTab({ lines }: { lines: string[] }) {
   const analysis = analyzeMetrics(lines.join('\n'))
 
@@ -131,8 +255,12 @@ function MetricsTab({ lines }: { lines: string[] }) {
     )
   }
 
-  const regularityTone = analysis.regularityScore >= 78 ? 'good' : analysis.regularityScore >= 55 ? 'default' : 'warn'
   const average = analysis.averageSyllables || 0
+  const speedScore = scoreAverageTarget(average)
+  const fitScore = scoreLineFit(analysis.lines, average)
+  const metricScore = clampPercent(analysis.regularityScore)
+  const rhythmScore = scoreRhythm(analysis.lines, analysis.regularityScore)
+  const flowScore = clampPercent(metricScore * 0.42 + fitScore * 0.24 + speedScore * 0.2 + rhythmScore * 0.14)
 
   return (
     <div>
@@ -146,25 +274,28 @@ function MetricsTab({ lines }: { lines: string[] }) {
         </span>
       </div>
 
+      <div className="mb-4">
+        <FlowMeterDial
+          score={flowScore}
+          speed={speedScore}
+          fit={fitScore}
+          metric={metricScore}
+          rhythm={rhythmScore}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-2 mb-4">
         <MetricCard label="Média" value={`${analysis.averageSyllables} síl.`} />
         <MetricCard label="Flow" value={flowSpeedLabel(analysis.flowSpeed)} tone={analysis.flowSpeed === 'very_fast' ? 'warn' : 'default'} />
         <MetricCard label="Barras" value={analysis.totalLines} />
-        <MetricCard label="Regularidade" value={`${analysis.regularityScore}%`} tone={regularityTone} />
+        <MetricCard label="Score" value={`${flowScore}%`} tone={flowScore >= 82 ? 'good' : flowScore >= 64 ? 'default' : 'warn'} />
       </div>
 
-      <div className="mb-4 rounded-md border border-[#2b2b36] bg-[#15151b] p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Consistência</span>
-          <span className="text-xs text-gray-300 font-semibold">{analysis.regularityScore}%</span>
-        </div>
-        <div className="h-2 bg-gray-900 rounded overflow-hidden">
-          <div
-            className={`h-full ${analysis.regularityScore >= 78 ? 'bg-green-500' : analysis.regularityScore >= 55 ? 'bg-purple-500' : 'bg-yellow-500'}`}
-            style={{ width: `${analysis.regularityScore}%` }}
-          />
-        </div>
-        <p className="text-[10px] text-gray-600 mt-1">Regularidade compara a variação de sílabas entre as barras.</p>
+      <div className="mb-4 space-y-2">
+        <MetricProgressRow label="Velocidade" value={speedScore} tone="cyan" />
+        <MetricProgressRow label="Encaixe" value={fitScore} tone="purple" />
+        <MetricProgressRow label="Métrica" value={metricScore} tone="green" />
+        <MetricProgressRow label="Ritmo das barras" value={rhythmScore} tone="pink" />
       </div>
 
       {analysis.warnings.length > 0 && (
