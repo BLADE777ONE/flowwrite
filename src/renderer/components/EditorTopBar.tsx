@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import { SectionToolbar } from '../../features/editor/components/SectionToolbar'
+import { useEditorStore } from '../../features/editor/editorStore'
 
 interface EditorTopBarProps {
   title: string
@@ -22,6 +23,7 @@ export function EditorTopBar({
   onDelete,
 }: EditorTopBarProps) {
   const [isPlaying, setIsPlaying] = useState(false)
+  const { bpm, setBpm } = useEditorStore()
 
   return (
     <header className="h-16 border-b border-white/[0.07] flex items-center px-5 gap-3 bg-[#0c0c11]/95 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
@@ -40,7 +42,20 @@ export function EditorTopBar({
       <div className="hidden lg:flex items-center gap-2">
         <div className="h-8 rounded-md border border-white/[0.08] bg-black/30 px-2.5 flex items-center gap-2">
           <span className="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-bold">BPM</span>
-          <span className="font-mono text-xs text-white">128</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            defaultValue={bpm}
+            key={bpm}
+            onFocus={e => e.target.select()}
+            onBlur={e => {
+              const v = parseInt(e.target.value, 10)
+              if (!isNaN(v) && v >= 40 && v <= 240) setBpm(v)
+              else e.target.value = String(bpm)
+            }}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+            className="w-10 bg-transparent font-mono text-xs text-white outline-none text-center"
+          />
         </div>
         <div className="h-8 rounded-md border border-white/[0.08] bg-black/30 px-2.5 flex items-center gap-2">
           <span className="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-bold">Beat</span>
