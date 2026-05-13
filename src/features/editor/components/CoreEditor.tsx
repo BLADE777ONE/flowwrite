@@ -57,13 +57,21 @@ export function CoreEditor() {
 
   // ─── Python init ─────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!window.flowAPI) return
+    let cancelled = false
     window.flowAPI.invoke('python:health').then((res: any) => {
-      if (res?.ok) { pythonReadyRef.current = true; setPythonAvailable(true) }
+      if (!cancelled && res?.ok) { pythonReadyRef.current = true; setPythonAvailable(true) }
     }).catch(() => {})
-    window.flowAPI.on('python:ready', () => {
+    const onReady = () => {
+      if (cancelled) return
       pythonReadyRef.current = true
       setPythonAvailable(true)
-    })
+    }
+    window.flowAPI.on('python:ready', onReady)
+    return () => {
+      cancelled = true
+      window.flowAPI.off('python:ready')
+    }
   }, [])
 
   // ─── Análise ─────────────────────────────────────────────────────────────
