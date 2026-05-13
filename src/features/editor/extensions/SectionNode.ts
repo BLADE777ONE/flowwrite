@@ -1,29 +1,25 @@
-// src/features/editor/extensions/SectionNode.ts
-// Nó TipTap para blocos de seção (Intro, Verso, Refrão, etc.)
-// Renderiza como um divisor visual com label editável inline
-
 import { Node, mergeAttributes } from '@tiptap/core'
 
 export type SectionType = 'intro' | 'verse' | 'chorus' | 'bridge' | 'outro' | 'freestyle' | 'custom'
 
 const SECTION_LABELS: Record<SectionType, string> = {
-  intro:     'INTRO',
-  verse:     'VERSO',
-  chorus:    'REFRÃO',
-  bridge:    'BRIDGE',
-  outro:     'OUTRO',
+  intro: 'INTRO',
+  verse: 'VERSO',
+  chorus: 'REFRÃO',
+  bridge: 'BRIDGE',
+  outro: 'OUTRO',
   freestyle: 'FREESTYLE',
-  custom:    'SEÇÃO',
+  custom: 'SEÇÃO',
 }
 
 const SECTION_COLORS: Record<SectionType, string> = {
-  intro:     '#7c3aed',
-  verse:     '#06b6d4',
-  chorus:    '#f59e0b',
-  bridge:    '#10b981',
-  outro:     '#606080',
-  freestyle: '#ef4444',
-  custom:    '#a0a0c0',
+  intro: '#a855f7',
+  verse: '#22d3ee',
+  chorus: '#fbbf24',
+  bridge: '#34d399',
+  outro: '#94a3b8',
+  freestyle: '#f87171',
+  custom: '#a0a0c0',
 }
 
 declare module '@tiptap/core' {
@@ -37,19 +33,21 @@ declare module '@tiptap/core' {
 export const SectionNode = Node.create({
   name: 'sectionBlock',
   group: 'block',
-  atom: true,          // não editável internamente pelo cursor
+  atom: true,
+  selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
       sectionType: {
         default: 'verse',
-        parseHTML: (el) => el.getAttribute('data-section-type') || 'verse',
-        renderHTML: (attrs) => ({ 'data-section-type': attrs.sectionType }),
+        parseHTML: element => element.getAttribute('data-section-type') || 'verse',
+        renderHTML: attributes => ({ 'data-section-type': attributes.sectionType }),
       },
       label: {
         default: '',
-        parseHTML: (el) => el.getAttribute('data-label') || '',
-        renderHTML: (attrs) => ({ 'data-label': attrs.label }),
+        parseHTML: element => element.getAttribute('data-label') || '',
+        renderHTML: attributes => ({ 'data-label': attributes.label }),
       },
     }
   },
@@ -59,9 +57,9 @@ export const SectionNode = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const type: SectionType = node.attrs.sectionType
-    const label: string     = node.attrs.label || SECTION_LABELS[type]
-    const color             = SECTION_COLORS[type]
+    const type = node.attrs.sectionType as SectionType
+    const label = node.attrs.label || SECTION_LABELS[type] || SECTION_LABELS.custom
+    const color = SECTION_COLORS[type] || SECTION_COLORS.custom
 
     return [
       'div',
@@ -80,18 +78,14 @@ export const SectionNode = Node.create({
       insertSection:
         (type, label) =>
         ({ commands }) => {
-          return commands.insertContent({
-            type: this.name,
-            attrs: { sectionType: type, label: label || '' },
-          })
+          return commands.insertContent([
+            {
+              type: this.name,
+              attrs: { sectionType: type, label: label || '' },
+            },
+            { type: 'paragraph' },
+          ])
         },
-    }
-  },
-
-  addKeyboardShortcuts() {
-    return {
-      // Backspace no início do próximo parágrafo não apaga a seção acidentalmente
-      Backspace: () => false,
     }
   },
 })

@@ -3,6 +3,7 @@ import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { RhymeHighlightExtension } from '../features/editor/RhymeHighlightExtension'
+import { SectionNode } from '../features/editor/extensions/SectionNode'
 import { getDictionaryData, type DictionaryResult } from '../features/dictionary/DictionaryService'
 import { Sidebar } from './components/Sidebar'
 import { EditorTopBar } from './components/EditorTopBar'
@@ -10,7 +11,13 @@ import { LyricsEditor } from './components/LyricsEditor'
 import { EditorStatusBar } from './components/EditorStatusBar'
 import { RightPanel } from './components/RightPanel'
 import type { ActiveToolTab, Project, Song } from './types'
-import { extractWordFromSelection, replaceWordAtSelection, textToHtml } from './utils/editorText'
+import {
+  extractWordFromSelection,
+  replaceWordAtSelection,
+  storedContentToEditorHtml,
+  storedContentToPlainText,
+  textToHtml,
+} from './utils/editorText'
 
 declare global {
   interface Window {
@@ -46,6 +53,7 @@ export default function App() {
   const editor = useEditor({
     extensions: [
       StarterKit,
+      SectionNode,
       Placeholder.configure({ placeholder: 'Comece a escrever suas barras...' }),
       RhymeHighlightExtension,
     ],
@@ -66,7 +74,7 @@ export default function App() {
     if (!editor || pendingContentRef.current === null) return
     const content = pendingContentRef.current
     pendingContentRef.current = null
-    editor.commands.setContent(textToHtml(content), false)
+    editor.commands.setContent(storedContentToEditorHtml(content), false)
   }, [editor])
 
   const lines = lyrics.split('\n')
@@ -115,7 +123,7 @@ export default function App() {
 
     saveTimerRef.current = setTimeout(async () => {
       setSaving(true)
-      await window.flowAPI.invoke('lyric:update', currentSong.id, { content: lyrics, title })
+      await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title })
       setSaving(false)
     }, 1500)
 
@@ -128,7 +136,7 @@ export default function App() {
     if (!currentSong || !window.flowAPI) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setSaving(true)
-    await window.flowAPI.invoke('lyric:update', currentSong.id, { content: lyrics, title })
+    await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title })
     setSaving(false)
   }
 
@@ -169,9 +177,9 @@ export default function App() {
     setTitle(song.title ?? '')
 
     const content = song.content ?? ''
-    setLyrics(content)
+    setLyrics(storedContentToPlainText(content))
     if (editor) {
-      editor.commands.setContent(textToHtml(content), false)
+      editor.commands.setContent(storedContentToEditorHtml(content), false)
     } else {
       pendingContentRef.current = content
     }
@@ -220,6 +228,7 @@ export default function App() {
           title={title}
           saving={saving}
           hasCurrentSong={Boolean(currentSong)}
+          editor={editor}
           onTitleChange={setTitle}
           onSave={handleSave}
           onDelete={handleDelete}

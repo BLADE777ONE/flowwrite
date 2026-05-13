@@ -11,6 +11,32 @@ export function textToHtml(text: string): string {
     .join('')
 }
 
+export function isHtmlContent(content: string): boolean {
+  return /<\/?[a-z][\s\S]*>/i.test(content.trim())
+}
+
+export function storedContentToEditorHtml(content: string): string {
+  if (!content.trim()) return ''
+  return isHtmlContent(content) ? content : textToHtml(content)
+}
+
+export function storedContentToPlainText(content: string): string {
+  if (!content.trim() || !isHtmlContent(content)) return content
+
+  const wrapper = document.createElement('div')
+  wrapper.innerHTML = content
+  wrapper.querySelectorAll('[data-section-block]').forEach(element => element.remove())
+
+  const blocks = Array.from(wrapper.children)
+  if (blocks.length === 0) return wrapper.textContent?.trim() ?? ''
+
+  return blocks
+    .map(element => element.textContent ?? '')
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function countSyllables(text: string): number {
   const words = text.trim().toLowerCase().split(/\s+/)
   return words.reduce((total, word) => {
