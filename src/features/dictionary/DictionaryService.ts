@@ -142,7 +142,7 @@ function extractLinksFromBlock(block: string): string[] {
       }
     }
 
-    return uniq(words).slice(0, 24)
+    return uniq(words).slice(0, 80)
   } catch {
     return []
   }

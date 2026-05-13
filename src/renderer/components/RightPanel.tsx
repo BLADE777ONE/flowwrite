@@ -547,7 +547,7 @@ function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
 }
 
 function RhymesTab({ selectedWord, lines }: { selectedWord: string; lines: string[] }) {
-  const rhymes = findRhymesTyped(selectedWord, 16)
+  const rhymes = findRhymesTyped(selectedWord, 48)
   const analysis = analyzeRhymes(lines.join('\n'))
 
   return (
