@@ -1,7 +1,7 @@
 // src/features/metrics/components/BPMPanel.tsx
 // Grid visual de BPM: mostra como cada linha se encaixa no beat
 
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useAnalysisStore } from '../../analysis/analysisStore'
 import { useEditorStore } from '../../editor/editorStore'
 
@@ -46,12 +46,25 @@ interface Props {
 export function BPMPanel({ bpm, onBpmChange }: Props) {
   const { metricsAnalysis } = useAnalysisStore()
 
-  const handleBpmInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // Estado local para o input numérico — permite digitar livremente sem travar
+  const [inputVal, setInputVal] = useState(String(bpm))
+  useEffect(() => { setInputVal(String(bpm)) }, [bpm])
+
+  // Range slider: sempre produz valores válidos, atualiza direto
+  const handleSlider = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10)
-    if (!isNaN(val) && val >= 40 && val <= 240) {
-      onBpmChange(val)
-    }
+    if (!isNaN(val)) onBpmChange(val)
   }, [onBpmChange])
+
+  // Number input: digita livremente, valida só no blur ou Enter
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputVal(e.target.value)
+  }
+  const commitNumber = () => {
+    const val = parseInt(inputVal, 10)
+    if (!isNaN(val) && val >= 40 && val <= 240) onBpmChange(val)
+    else setInputVal(String(bpm))
+  }
 
   // Tempo por bar em ms
   const msPerBeat = 60000 / bpm
@@ -73,7 +86,7 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
             min={40}
             max={240}
             value={bpm}
-            onChange={handleBpmInput}
+            onChange={handleSlider}
             className="w-full accent-accent-primary h-1.5 rounded"
           />
         </div>
@@ -82,8 +95,10 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
             type="number"
             min={40}
             max={240}
-            value={bpm}
-            onChange={handleBpmInput}
+            value={inputVal}
+            onChange={handleNumberChange}
+            onBlur={commitNumber}
+            onKeyDown={e => { if (e.key === 'Enter') commitNumber() }}
             className="w-full bg-studio-bg border border-studio-border rounded px-1 py-0.5 text-center text-lg font-bold font-mono text-accent-glow outline-none focus:border-accent-primary"
           />
           <span className="text-[9px] text-text-muted mt-0.5">BPM</span>

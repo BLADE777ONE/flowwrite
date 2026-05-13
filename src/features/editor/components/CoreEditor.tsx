@@ -305,11 +305,14 @@ export function CoreEditor() {
           <input
             type="number"
             min={40} max={240}
-            value={bpm}
-            onChange={e => {
+            defaultValue={bpm}
+            key={bpm}
+            onBlur={e => {
               const v = parseInt(e.target.value)
               if (!isNaN(v) && v >= 40 && v <= 240) setBpm(v)
+              else e.target.value = String(bpm)
             }}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
             className="w-9 bg-transparent text-xs font-bold font-mono outline-none text-center"
             style={{ color: '#7c3aed' }}
           />
