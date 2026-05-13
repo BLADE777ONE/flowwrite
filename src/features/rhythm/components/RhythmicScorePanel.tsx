@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react'
-import { mapLineToRhythm, type RhythmLineMap, type RhythmSyllable } from '../rhythmMapping'
+import { mapLineToRhythm, type RhythmLineMap, type RhythmPocket, type RhythmSyllable } from '../rhythmMapping'
 
 interface RhythmicScorePanelProps {
   lines: string[]
@@ -12,16 +12,29 @@ interface RhythmicScorePanelProps {
 type SlotOverrides = Record<string, number>
 type ScoreViewMode = 'compact' | 'detail'
 
-const SLOT_MARKERS = ['1', 'e', '&', 'a', '2', 'e', '&', 'a', '3', 'e', '&', 'a', '4', 'e', '&', 'a']
+const POCKETS: Array<{ id: RhythmPocket; label: string; hint: string; markers: string[] }> = [
+  {
+    id: 'straight16',
+    label: 'Reto 1/16',
+    hint: 'Semicolcheias retas para rap cadenciado e boombap.',
+    markers: ['1', 'e', '&', 'a', '2', 'e', '&', 'a', '3', 'e', '&', 'a', '4', 'e', '&', 'a'],
+  },
+  {
+    id: 'triplet',
+    label: 'Triple Flow',
+    hint: 'Trinca por tempo, pocket usado em trap/Migos flow.',
+    markers: ['1', 'tri', 'let', '2', 'tri', 'let', '3', 'tri', 'let', '4', 'tri', 'let'],
+  },
+]
 
 function getOverrideKey(lineIndex: number, syllableId: string): string {
   return `${lineIndex}:${syllableId}`
 }
 
-function getSlotFromPointer(clientX: number, element: HTMLElement): number {
+function getSlotFromPointer(clientX: number, element: HTMLElement, slotsPerBar: number): number {
   const rect = element.getBoundingClientRect()
   const relativeX = Math.max(0, Math.min(rect.width, clientX - rect.left))
-  return Math.max(0, Math.min(15, Math.round((relativeX / rect.width) * 15)))
+  return Math.max(0, Math.min(slotsPerBar - 1, Math.round((relativeX / rect.width) * (slotsPerBar - 1))))
 }
 
 function buildLineOverrides(overrides: SlotOverrides, lineIndex: number): Record<string, number> {
@@ -41,13 +54,13 @@ function EmptyScore() {
   )
 }
 
-function BeatHeader() {
+function BeatHeader({ markers }: { markers: string[] }) {
   return (
     <div className="rhythm-beat-header">
       <div className="rhythm-header-spacer">BAR</div>
-      <div className="rhythm-header-grid">
-        {SLOT_MARKERS.map((marker, index) => (
-          <span key={`${marker}-${index}`} className={index % 4 === 0 ? 'strong' : ''}>
+      <div className="rhythm-header-grid" style={{ '--rhythm-slots': markers.length } as CSSProperties}>
+        {markers.map((marker, index) => (
+          <span key={`${marker}-${index}`} className={/^\d$/.test(marker) ? 'strong' : ''}>
             {marker}
           </span>
         ))}
@@ -56,13 +69,13 @@ function BeatHeader() {
   )
 }
 
-function GridSlots() {
+function GridSlots({ slotsPerBar, beatStep }: { slotsPerBar: number; beatStep: number }) {
   return (
     <div className="rhythm-grid-slots" aria-hidden="true">
-      {Array.from({ length: 16 }).map((_, slot) => (
+      {Array.from({ length: slotsPerBar }).map((_, slot) => (
         <span
           key={slot}
-          className={slot % 4 === 0 ? 'rhythm-grid-slot strong' : 'rhythm-grid-slot'}
+          className={slot % beatStep === 0 ? 'rhythm-grid-slot strong' : 'rhythm-grid-slot'}
         />
       ))}
     </div>
@@ -102,11 +115,12 @@ function SyllableNote({
         const track = event.currentTarget.parentElement
         if (!track) return
 
+        const slotsPerBar = Number(track.dataset.slotsPerBar || 16)
         event.currentTarget.setPointerCapture(event.pointerId)
-        onMove(lineIndex, note, getSlotFromPointer(event.clientX, track))
+        onMove(lineIndex, note, getSlotFromPointer(event.clientX, track, slotsPerBar))
 
         const handleMove = (moveEvent: PointerEvent) => {
-          onMove(lineIndex, note, getSlotFromPointer(moveEvent.clientX, track))
+          onMove(lineIndex, note, getSlotFromPointer(moveEvent.clientX, track, slotsPerBar))
         }
 
         const handleUp = () => {
@@ -144,6 +158,7 @@ function RhythmLine({
 }) {
   const filledSlots = new Set(map.syllables.map(note => note.slot))
   const density = getLineDensity(map.syllables.length)
+  const beatStep = map.pocket === 'triplet' ? 3 : 4
 
   return (
     <div className={`rhythm-line ${active ? 'is-active' : ''} is-${density.className}`}>
@@ -154,11 +169,11 @@ function RhythmLine({
       </div>
 
       {!collapsed && mode === 'detail' && (
-        <div className="rhythm-track">
-          <GridSlots />
+        <div className="rhythm-track" data-slots-per-bar={map.slotsPerBar} style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
+          <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
           {playing && <span className="rhythm-playhead" />}
           <div className="rhythm-breath-row" aria-hidden="true">
-            {Array.from({ length: 16 }).map((_, slot) => (
+            {Array.from({ length: map.slotsPerBar }).map((_, slot) => (
               <span key={slot} className={!filledSlots.has(slot) ? 'breath' : ''} />
             ))}
           </div>
@@ -175,8 +190,8 @@ function RhythmLine({
       )}
 
       {!collapsed && mode === 'compact' && (
-        <div className="rhythm-compact-track">
-          <GridSlots />
+        <div className="rhythm-compact-track" style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
+          <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
           {playing && <span className="rhythm-playhead" />}
           <div className="rhythm-compact-notes">
             {map.syllables.map(note => (
@@ -205,16 +220,18 @@ export function RhythmicScorePanel({
 }: RhythmicScorePanelProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<ScoreViewMode>('compact')
+  const [pocket, setPocket] = useState<RhythmPocket>('straight16')
   const [overrides, setOverrides] = useState<SlotOverrides>({})
+  const selectedPocket = POCKETS.find(item => item.id === pocket) ?? POCKETS[0]
 
   const rhythmLines = useMemo(() => {
     return lines
       .map((line, lineIndex) => ({
         sourceIndex: startBarIndex + lineIndex,
-        map: mapLineToRhythm(line, bpm, undefined, buildLineOverrides(overrides, startBarIndex + lineIndex)),
+        map: mapLineToRhythm(line, bpm, undefined, buildLineOverrides(overrides, startBarIndex + lineIndex), pocket),
       }))
       .filter(line => line.map.lineText.trim().length > 0)
-  }, [lines, bpm, overrides, startBarIndex])
+  }, [lines, bpm, overrides, startBarIndex, pocket])
 
   const totalSyllables = rhythmLines.reduce((sum, line) => sum + line.map.syllables.length, 0)
   const averageSyllables = rhythmLines.length > 0
@@ -265,6 +282,19 @@ export function RhythmicScorePanel({
                 Editar
               </button>
             </div>
+            <div className="rhythm-pocket-toggle" role="group" aria-label="Pocket rítmico">
+              {POCKETS.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={pocket === item.id ? 'active' : ''}
+                  title={item.hint}
+                  onClick={() => setPocket(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             <div className="rhythm-bpm-pill">
               <span>{bpm}</span>
               <small>BPM</small>
@@ -277,11 +307,11 @@ export function RhythmicScorePanel({
         <div className="rhythm-panel-stats">
           <span>{rhythmLines.length} barras</span>
           <span>{averageSyllables || '--'} sil/bar</span>
-          <span>{playing ? 'tocando' : '4/4'}</span>
+          <span>{playing ? 'tocando' : selectedPocket.label}</span>
         </div>
       )}
 
-      {!collapsed && <BeatHeader />}
+      {!collapsed && <BeatHeader markers={selectedPocket.markers} />}
 
       <div className="rhythm-lines editor-scroll">
         {rhythmLines.length === 0 ? (
