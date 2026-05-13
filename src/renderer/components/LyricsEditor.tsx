@@ -6,13 +6,24 @@ import { analyzeRhymes } from '../../features/rhyme/RhymeService'
 interface LyricsEditorProps {
   editor: Editor | null
   lyrics: string
+  scopedLines: string[]
+  activeBlockStart: number
 }
 
-function EditorStudioStrip({ lyrics }: { lyrics: string }) {
-  const contentLines = lyrics.split('\n').map(line => line.trim()).filter(Boolean)
-  const metrics = analyzeMetrics(lyrics)
-  const rhyme = analyzeRhymes(lyrics)
-  const currentBlock = Math.max(1, Math.ceil(contentLines.length / 4))
+function EditorStudioStrip({
+  lyrics,
+  scopedLines,
+  activeBlockStart,
+}: {
+  lyrics: string
+  scopedLines: string[]
+  activeBlockStart: number
+}) {
+  const contentLines = scopedLines.map(line => line.trim()).filter(Boolean)
+  const scopedText = contentLines.join('\n')
+  const metrics = analyzeMetrics(scopedText)
+  const rhyme = analyzeRhymes(scopedText)
+  const currentBlock = Math.floor(activeBlockStart / 4) + 1
   const activeScheme = rhyme.schemeBlocks.at(-1)?.pattern ?? '----'
   const averageSyllables = metrics.averageSyllables || 0
 
@@ -25,7 +36,7 @@ function EditorStudioStrip({ lyrics }: { lyrics: string }) {
           </span>
           <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.65)]" />
           <span className="hidden md:inline text-[10px] text-gray-600">
-            {contentLines.length || 0} barras
+            {contentLines.length || 0} barras neste bloco
           </span>
         </div>
 
@@ -42,7 +53,7 @@ function EditorStudioStrip({ lyrics }: { lyrics: string }) {
   )
 }
 
-export function LyricsEditor({ editor, lyrics }: LyricsEditorProps) {
+export function LyricsEditor({ editor, lyrics, scopedLines, activeBlockStart }: LyricsEditorProps) {
   return (
     <main className="flex-1 min-h-0 bg-[#09090d] relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_-30%,rgba(124,58,237,0.16),transparent_60%)] pointer-events-none" />
@@ -56,7 +67,7 @@ export function LyricsEditor({ editor, lyrics }: LyricsEditorProps) {
             ))}
           </div>
         </div>
-        <EditorStudioStrip lyrics={lyrics} />
+        <EditorStudioStrip lyrics={lyrics} scopedLines={scopedLines} activeBlockStart={activeBlockStart} />
         <EditorContent editor={editor} />
       </div>
     </main>

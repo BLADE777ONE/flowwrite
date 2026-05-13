@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEditor } from '@tiptap/react'
+import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { RhymeHighlightExtension } from '../features/editor/RhymeHighlightExtension'
 import { SectionNode } from '../features/editor/extensions/SectionNode'
 import { LineGutterExtension } from '../features/editor/extensions/LineGutterExtension'
 import { getDictionaryData, type DictionaryResult } from '../features/dictionary/DictionaryService'
+import { useEditorStore } from '../features/editor/editorStore'
+import { RhythmicScorePanel } from '../features/rhythm/components/RhythmicScorePanel'
 import { Sidebar } from './components/Sidebar'
 import { EditorTopBar } from './components/EditorTopBar'
 import { LyricsEditor } from './components/LyricsEditor'
@@ -32,6 +35,27 @@ declare global {
   }
 }
 
+function getActiveBarIndex(editor: Editor): number {
+  let contentIndex = 0
+  let activeIndex = 0
+  let found = false
+  const { from } = editor.state.selection
+
+  editor.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'paragraph') return
+
+    const isActiveNode = from >= offset && from <= offset + node.nodeSize
+    if (isActiveNode && !found) {
+      activeIndex = contentIndex
+      found = true
+    }
+
+    if (node.textContent.trim()) contentIndex++
+  })
+
+  return found ? activeIndex : Math.max(0, contentIndex - 1)
+}
+
 export default function App() {
   const [lyrics, setLyrics] = useState('')
   const [title, setTitle] = useState('')
@@ -46,6 +70,8 @@ export default function App() {
   const [segments, setSegments] = useState<TimelineSegment[]>([])
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null)
   const [dictLoading, setDictLoading] = useState(false)
+  const [activeBarIndex, setActiveBarIndex] = useState(0)
+  const { bpm } = useEditorStore()
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLoadingRef = useRef(false)
@@ -66,12 +92,14 @@ export default function App() {
       if (isLoadingRef.current) return
       setLyrics(editor.getText({ blockSeparator: '\n' }))
       setSegments(extractTimelineSegments(editor))
+      setActiveBarIndex(getActiveBarIndex(editor))
     },
     onSelectionUpdate: ({ editor }) => {
       const { raw, normalized } = extractWordFromSelection(editor)
       console.log('[App] Palavra extraída:', raw, '| normalizada:', normalized)
       rawWordRef.current = raw.toLowerCase()
       setSelectedWord(normalized)
+      setActiveBarIndex(getActiveBarIndex(editor))
     },
   })
 
@@ -84,6 +112,11 @@ export default function App() {
   }, [editor])
 
   const lines = lyrics.split('\n')
+  const contentLines = lines.map(line => line.trim()).filter(Boolean)
+  const safeActiveBarIndex = Math.min(activeBarIndex, Math.max(contentLines.length - 1, 0))
+  const activeBlockStart = Math.floor(safeActiveBarIndex / 4) * 4
+  const activeBlockLines = contentLines.slice(activeBlockStart, activeBlockStart + 4)
+  const scopedLines = activeBlockLines.length > 0 ? activeBlockLines : contentLines.slice(0, 4)
 
   useEffect(() => {
     if (activeTab !== 'dictionary') return
@@ -180,6 +213,7 @@ export default function App() {
   function loadSong(song: Song) {
     isLoadingRef.current = true
     setCurrentSong(song)
+    setActiveBarIndex(0)
     setTitle(song.title ?? '')
 
     const content = song.content ?? ''
@@ -254,14 +288,20 @@ export default function App() {
           onSave={handleSave}
           onDelete={handleDelete}
         />
-        <LyricsEditor editor={editor} lyrics={lyrics} />
+        <LyricsEditor
+          editor={editor}
+          lyrics={lyrics}
+          scopedLines={scopedLines}
+          activeBlockStart={activeBlockStart}
+        />
+        <RhythmicScorePanel lines={scopedLines} bpm={bpm} startBarIndex={activeBlockStart} />
         <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} segments={segments} />
       </div>
 
       <RightPanel
         activeTab={activeTab}
         selectedWord={selectedWord}
-        lines={lines}
+        lines={scopedLines}
         dictResult={dictResult}
         dictLoading={dictLoading}
         onTabChange={setActiveTab}
