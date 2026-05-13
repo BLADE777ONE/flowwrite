@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
-import { analyzeMetrics } from '../../features/metrics/MetricsService'
+import { analyzeMetrics, scoreBreathLoad, scoreBlockConsistency, generateLineAlerts } from '../../features/metrics/MetricsService'
 import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
 import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
@@ -176,19 +176,22 @@ function FlowMeterDial({
   fit,
   metric,
   rhythm,
+  breath,
 }: {
   score: number
   speed: number
   fit: number
   metric: number
   rhythm: number
+  breath: number
 }) {
   const circumference = 2 * Math.PI * 48
   const rings = [
-    { value: metric, radius: 48, stroke: '#a855f7', width: 7 },
-    { value: speed, radius: 39, stroke: '#22d3ee', width: 5 },
-    { value: fit, radius: 31, stroke: '#34d399', width: 4 },
-    { value: rhythm, radius: 24, stroke: '#f472b6', width: 3 },
+    { value: metric, radius: 48, stroke: '#a855f7', width: 6 },
+    { value: speed, radius: 40, stroke: '#22d3ee', width: 5 },
+    { value: fit, radius: 33, stroke: '#34d399', width: 4 },
+    { value: rhythm, radius: 26, stroke: '#f472b6', width: 3 },
+    { value: breath, radius: 20, stroke: '#fb923c', width: 3 },
   ]
 
   return (
@@ -260,7 +263,12 @@ function MetricsTab({ lines }: { lines: string[] }) {
   const fitScore = scoreLineFit(analysis.lines, average)
   const metricScore = clampPercent(analysis.regularityScore)
   const rhythmScore = scoreRhythm(analysis.lines, analysis.regularityScore)
-  const flowScore = clampPercent(metricScore * 0.42 + fitScore * 0.24 + speedScore * 0.2 + rhythmScore * 0.14)
+  const breathScore = scoreBreathLoad(analysis.lines)
+  const blockScore = scoreBlockConsistency(analysis.lines)
+  const flowScore = clampPercent(
+    metricScore * 0.35 + fitScore * 0.22 + speedScore * 0.18 +
+    rhythmScore * 0.12 + breathScore * 0.08 + blockScore * 0.05,
+  )
 
   return (
     <div>
@@ -281,6 +289,7 @@ function MetricsTab({ lines }: { lines: string[] }) {
           fit={fitScore}
           metric={metricScore}
           rhythm={rhythmScore}
+          breath={breathScore}
         />
       </div>
 
@@ -296,6 +305,8 @@ function MetricsTab({ lines }: { lines: string[] }) {
         <MetricProgressRow label="Encaixe" value={fitScore} tone="purple" />
         <MetricProgressRow label="Métrica" value={metricScore} tone="green" />
         <MetricProgressRow label="Ritmo das barras" value={rhythmScore} tone="pink" />
+        <MetricProgressRow label="Respiro" value={breathScore} tone="cyan" />
+        <MetricProgressRow label="Consistência de bloco" value={blockScore} tone="green" />
       </div>
 
       {analysis.warnings.length > 0 && (
@@ -314,6 +325,7 @@ function MetricsTab({ lines }: { lines: string[] }) {
           const width = Math.max(8, Math.min(100, (line.syllableCount / Math.max(average + 8, 16)) * 100))
           const blockNumber = Math.floor(index / 4) + 1
           const positionInBlock = (index % 4) + 1
+          const alerts = generateLineAlerts(line, average)
 
           return (
             <div key={index} className="bg-[#19191f] border border-[#2b2b36] p-3 rounded-md hover:border-purple-800/50 transition">
@@ -342,6 +354,16 @@ function MetricsTab({ lines }: { lines: string[] }) {
                 {line.breathPoints.length > 0 && <span className="text-[10px] text-cyan-400">pausa sugerida</span>}
                 {line.elisions.length > 0 && <span className="text-[10px] text-purple-400">{line.elisions.length} elisão</span>}
               </div>
+
+              {alerts.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {alerts.map((alert, ai) => (
+                    <span key={ai} className="text-[10px] px-1.5 py-0.5 rounded border bg-orange-950/30 text-orange-300 border-orange-800/40 font-bold">
+                      {alert}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <p className="text-[10px] text-gray-600 mt-1">{fit.hint}</p>
             </div>

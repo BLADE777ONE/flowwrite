@@ -156,6 +156,55 @@ function generateWarnings(lines: LineMetrics[], avg: number): string[] {
   return warnings
 }
 
+export function scoreBreathLoad(lines: LineMetrics[]): number {
+  if (lines.length === 0) return 0
+  const forced = lines.filter(l => l.syllableCount >= 15 && l.breathPoints.length === 0).length
+  return Math.max(0, Math.min(100, Math.round(100 - (forced / lines.length) * 80)))
+}
+
+export function scoreBlockConsistency(lines: LineMetrics[]): number {
+  if (lines.length < 2) return 100
+  const blocks: number[][] = []
+  for (let i = 0; i < lines.length; i += 4) {
+    const block = lines.slice(i, i + 4).map(l => l.syllableCount)
+    if (block.length > 1) blocks.push(block)
+  }
+  if (blocks.length === 0) return 100
+  const blockScores = blocks.map(block => {
+    const mean = block.reduce((a, b) => a + b, 0) / block.length
+    if (mean === 0) return 0
+    const variance = block.reduce((sum, c) => sum + (c - mean) ** 2, 0) / block.length
+    const cv = Math.sqrt(variance) / mean
+    return Math.max(0, Math.min(100, Math.round(100 - cv * 100)))
+  })
+  return Math.round(blockScores.reduce((a, b) => a + b, 0) / blockScores.length)
+}
+
+export function generateLineAlerts(line: LineMetrics, average: number): string[] {
+  const alerts: string[] = []
+  const diff = line.syllableCount - average
+
+  if (line.syllableCount >= 22) {
+    alerts.push(`${line.syllableCount} síl — double time ou divida`)
+  } else if (line.syllableCount >= 20) {
+    alerts.push(`${line.syllableCount} síl — muito longa`)
+  } else if (diff >= 5) {
+    alerts.push(`+${Math.round(diff)} síl acima da média`)
+  }
+
+  if (line.isTooShort) alerts.push('muito curta')
+
+  if (line.syllableCount >= 15 && line.breathPoints.length === 0) {
+    alerts.push('sem respiro — risco de rush')
+  }
+
+  if (line.flowSpeed === 'very_fast' && line.syllableCount < 22) {
+    alerts.push('duplo tempo')
+  }
+
+  return alerts
+}
+
 function emptyMetrics(): MetricsAnalysis {
   return {
     lines: [],

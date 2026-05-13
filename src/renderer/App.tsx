@@ -10,9 +10,10 @@ import { EditorTopBar } from './components/EditorTopBar'
 import { LyricsEditor } from './components/LyricsEditor'
 import { EditorStatusBar } from './components/EditorStatusBar'
 import { RightPanel } from './components/RightPanel'
-import type { ActiveToolTab, Project, Song } from './types'
+import type { ActiveToolTab, Project, Song, TimelineSegment } from './types'
 import {
   extractWordFromSelection,
+  extractTimelineSegments,
   replaceWordAtSelection,
   storedContentToEditorHtml,
   storedContentToPlainText,
@@ -41,6 +42,7 @@ export default function App() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null)
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [saving, setSaving] = useState(false)
+  const [segments, setSegments] = useState<TimelineSegment[]>([])
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null)
   const [dictLoading, setDictLoading] = useState(false)
 
@@ -61,6 +63,7 @@ export default function App() {
     onUpdate: ({ editor }) => {
       if (isLoadingRef.current) return
       setLyrics(editor.getText({ blockSeparator: '\n' }))
+      setSegments(extractTimelineSegments(editor))
     },
     onSelectionUpdate: ({ editor }) => {
       const { raw, normalized } = extractWordFromSelection(editor)
@@ -75,6 +78,7 @@ export default function App() {
     const content = pendingContentRef.current
     pendingContentRef.current = null
     editor.commands.setContent(storedContentToEditorHtml(content), false)
+    setSegments(extractTimelineSegments(editor))
   }, [editor])
 
   const lines = lyrics.split('\n')
@@ -180,6 +184,7 @@ export default function App() {
     setLyrics(storedContentToPlainText(content))
     if (editor) {
       editor.commands.setContent(storedContentToEditorHtml(content), false)
+      setSegments(extractTimelineSegments(editor))
     } else {
       pendingContentRef.current = content
     }
@@ -248,7 +253,7 @@ export default function App() {
           onDelete={handleDelete}
         />
         <LyricsEditor editor={editor} lyrics={lyrics} />
-        <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} />
+        <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} segments={segments} />
       </div>
 
       <RightPanel

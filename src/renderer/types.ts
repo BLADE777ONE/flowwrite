@@ -13,3 +13,10 @@ export interface Song {
 }
 
 export type ActiveToolTab = 'rhymes' | 'metrics' | 'dictionary' | 'assistant'
+
+export interface TimelineSegment {
+  type: string
+  label: string
+  color: string
+  lines: number
+}

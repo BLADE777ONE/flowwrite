@@ -1,4 +1,53 @@
 import type { Editor } from '@tiptap/core'
+import type { TimelineSegment } from '../types'
+
+const SECTION_COLORS: Record<string, string> = {
+  intro:     '#a855f7',
+  verse:     '#22d3ee',
+  chorus:    '#fbbf24',
+  bridge:    '#34d399',
+  outro:     '#94a3b8',
+  freestyle: '#f87171',
+  custom:    '#a0a0c0',
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  intro:     'INTRO',
+  verse:     'VERSO',
+  chorus:    'REFRÃO',
+  bridge:    'BRIDGE',
+  outro:     'OUTRO',
+  freestyle: 'LIVRE',
+  custom:    'SEÇÃO',
+}
+
+export function extractTimelineSegments(editor: Editor | null): TimelineSegment[] {
+  if (!editor) return []
+
+  const segments: TimelineSegment[] = []
+  let current: TimelineSegment | null = null
+
+  editor.state.doc.forEach((node) => {
+    if (node.type.name === 'sectionBlock') {
+      if (current) segments.push(current)
+      const type = (node.attrs.sectionType as string) || 'custom'
+      current = {
+        type,
+        label: node.attrs.label || SECTION_LABELS[type] || 'SEÇÃO',
+        color: SECTION_COLORS[type] || SECTION_COLORS.custom,
+        lines: 0,
+      }
+    } else if (node.type.name === 'paragraph' && node.textContent.trim()) {
+      if (!current) {
+        current = { type: 'unsectioned', label: 'BARRAS', color: '#6b7280', lines: 0 }
+      }
+      current!.lines++
+    }
+  })
+
+  if (current) segments.push(current)
+  return segments.filter(s => s.lines > 0)
+}
 
 const WORD_CHAR_RE = /[a-zA-ZÀ-ÿ]/
 
