@@ -13,6 +13,7 @@ import type {
 } from '../../shared/types/Rhyme'
 import WORD_BANK_JSON from './wordBank.json'
 import PHRASE_BANK_JSON from './phraseBank.json'
+import WORD_INDEX_JSON from './wordIndex.json'
 
 export interface RhymeSuggestion {
   word: string
@@ -22,6 +23,7 @@ export interface RhymeSuggestion {
 
 const WORD_BANK: readonly string[] = WORD_BANK_JSON
 const PHRASE_BANK: readonly string[] = PHRASE_BANK_JSON
+const WORD_INDEX: Record<string, readonly string[]> = WORD_INDEX_JSON as Record<string, readonly string[]>
 
 interface RhymeStanza {
   startLine: number
@@ -341,6 +343,25 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
   for (const candidate of WORD_BANK) {
     const sc = scoreByNucleus(input, candidate)
     if (sc >= 0.4) addResult(candidate, sc)
+  }
+
+  // 2b. WORD_INDEX — 15k palavras indexadas por sufixo (pythonprobr/palavras)
+  // Lookup O(1): apenas candidatos com sufixo compatível são pontuados.
+  {
+    const s2 = normInput.slice(-2)
+    const s3 = normInput.slice(-3)
+    const s4 = normInput.slice(-4)
+    const s5 = normInput.slice(-5)
+    const indexCandidates = new Set<string>([
+      ...(WORD_INDEX[s5] ?? []),
+      ...(WORD_INDEX[s4] ?? []),
+      ...(WORD_INDEX[s3] ?? []),
+      ...(WORD_INDEX[s2] ?? []),
+    ])
+    for (const candidate of indexCandidates) {
+      const sc = scoreByNucleus(input, candidate)
+      if (sc >= 0.4) addResult(candidate, sc)
+    }
   }
 
   // 3. PHRASE_BANK — expressões multi-palavra (pois é, foi lá, dói né...)
