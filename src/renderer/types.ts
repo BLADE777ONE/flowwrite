@@ -12,4 +12,4 @@ export interface Song {
   updatedAt: string
 }
 
-export type ActiveToolTab = 'rhymes' | 'metrics' | 'dictionary'
+export type ActiveToolTab = 'rhymes' | 'metrics' | 'dictionary' | 'assistant'

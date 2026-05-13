@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
 import { analyzeMetrics } from '../../features/metrics/MetricsService'
+import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
 import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
 import type { ActiveToolTab } from '../types'
@@ -14,6 +15,7 @@ interface RightPanelProps {
   dictLoading: boolean
   onTabChange: (tab: ActiveToolTab) => void
   onInsertWord: (word: string) => void
+  onInsertLine: (line: string) => void
 }
 
 const typeLabel: Record<string, string> = {
@@ -427,7 +429,108 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
   )
 }
 
-export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoading, onTabChange, onInsertWord }: RightPanelProps) {
+function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | 'onInsertLine'>) {
+  const text = lines.join('\n').trim()
+  const contentLines = lines.map(line => line.trim()).filter(Boolean)
+
+  if (contentLines.length < 2) {
+    return (
+      <div>
+        <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
+        <div className="text-center mt-10">
+          <p className="text-sm text-gray-500">Escreva ao menos 2 linhas para o app entender seu desenho de rima.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const rhymeAnalysis = analyzeRhymes(text)
+  const metricsAnalysis = analyzeMetrics(text)
+  const suggestion = generateGhostwriterSuggestion(text, rhymeAnalysis, metricsAnalysis)
+  const lastBlock = rhymeAnalysis.schemeBlocks.at(-1)
+
+  if (!suggestion) {
+    return (
+      <div>
+        <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
+        <div className="text-center mt-10">
+          <p className="text-sm text-gray-500">Continue escrevendo para gerar um alvo de próxima linha.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
+        <p className="text-[10px] text-gray-600 mt-1">Sugestões locais baseadas no seu esquema e na métrica atual.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <MetricCard label="Alvo" value={suggestion.nextRhymeClass ?? 'livre'} />
+        <MetricCard label="Sílabas" value={`~${suggestion.targetSyllables}`} />
+        <MetricCard label="Flow" value={flowSpeedLabel(suggestion.flowSpeed)} />
+      </div>
+
+      {lastBlock && (
+        <div className="rounded-md border border-purple-800/40 bg-purple-950/20 p-3 mb-4">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Leitura atual</p>
+          <p className="font-mono text-lg text-white tracking-[0.18em] mt-2">{lastBlock.pattern}</p>
+          <p className="text-[10px] text-gray-500 mt-1">
+            Próximo fechamento sugerido: família {suggestion.nextRhymeClass ?? 'livre'}.
+          </p>
+        </div>
+      )}
+
+      <section className="mb-5">
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Fechamentos possíveis</p>
+        <div className="flex flex-wrap gap-1.5">
+          {suggestion.rhymeOptions.map((word, index) => (
+            <button
+              key={`${word}-${index}`}
+              onClick={() => onInsertLine(word)}
+              className="px-2.5 py-1 text-sm rounded-lg border bg-purple-900/20 text-purple-300 border-purple-700/50 hover:border-purple-400 hover:bg-purple-900/40 transition"
+              title="Inserir como nova linha"
+            >
+              {word}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-5">
+        <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Moldes de próxima barra</p>
+        <div className="space-y-2">
+          {suggestion.templateStarters.map((line, index) => (
+            <button
+              key={`${line}-${index}`}
+              onClick={() => onInsertLine(line)}
+              className="w-full text-left rounded-md border border-[#2b2b36] bg-[#19191f] px-3 py-2 text-xs text-gray-300 hover:border-purple-700/70 hover:text-white transition"
+            >
+              {line}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {suggestion.styleHints.length > 0 && (
+        <section>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Dicas de ajuste</p>
+          <div className="space-y-1.5">
+            {suggestion.styleHints.map((hint, index) => (
+              <p key={index} className="text-xs text-gray-400 bg-[#19191f] border border-[#2b2b36] rounded-md px-3 py-2">
+                {hint}
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoading, onTabChange, onInsertWord, onInsertLine }: RightPanelProps) {
   return (
     <div className="w-[22rem] min-w-[20rem] bg-[#131317] border-l border-[#262631] flex flex-col relative">
       <div className="h-16 border-b border-[#262631] flex items-center justify-between px-4 bg-[#151519] app-region-drag">
@@ -438,10 +541,11 @@ export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoa
         <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_14px_rgba(34,211,238,0.55)]" />
       </div>
 
-      <div className="grid grid-cols-3 gap-1 border-b border-[#262631] bg-[#101014] p-2">
+      <div className="grid grid-cols-4 gap-1 border-b border-[#262631] bg-[#101014] p-2">
         <TabButton tab="metrics" activeTab={activeTab} onTabChange={onTabChange}>Métrica</TabButton>
         <TabButton tab="rhymes" activeTab={activeTab} onTabChange={onTabChange}>Rimas</TabButton>
         <TabButton tab="dictionary" activeTab={activeTab} onTabChange={onTabChange}>Dicionário</TabButton>
+        <TabButton tab="assistant" activeTab={activeTab} onTabChange={onTabChange}>Assist.</TabButton>
       </div>
 
       <div className="p-4 flex-1 overflow-y-auto">
@@ -455,6 +559,7 @@ export function RightPanel({ activeTab, selectedWord, lines, dictResult, dictLoa
             onInsertWord={onInsertWord}
           />
         )}
+        {activeTab === 'assistant' && <AssistantTab lines={lines} onInsertLine={onInsertLine} />}
       </div>
     </div>
   )

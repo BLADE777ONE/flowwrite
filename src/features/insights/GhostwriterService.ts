@@ -4,6 +4,7 @@
 
 import { RhymeAnalysis, RhymeChain } from '../../shared/types/Rhyme'
 import { MetricsAnalysis, FlowSpeed } from '../../shared/types/Metrics'
+import { findRhymesTyped } from '../rhyme/RhymeService'
 
 export interface GhostwriterSuggestion {
   targetEndRhyme: string          // palavra sugerida para terminar o verso
@@ -86,16 +87,20 @@ function findNextRhymeTarget(
 
   // Olha a análise de rimas para decidir qual cadeia continuar
   const { scheme, chains, suggestions, endWords } = rhymeAnalysis
+  const schemeTarget = inferSchemeTarget(rhymeAnalysis)
 
   // Encontra a cadeia dominante que deveria ter um próximo
   let nextChain: RhymeChain | null = null
+  if (schemeTarget?.label) {
+    nextChain = chains.find(c => c.label === schemeTarget.label) ?? null
+  }
 
-  if (scheme === 'AABB' || scheme === 'ABAB') {
+  if (!nextChain && (scheme === 'AABB' || scheme === 'ABAB')) {
     // Padrão alternado — precisa rimar com 1 ou 2 linhas atrás
     const targetLine = scheme === 'AABB' ? lines.length - 1 : lines.length - 2
     const targetWord = endWords[targetLine] || lastWord
     nextChain = chains.find(c => c.words.includes(targetWord)) ?? null
-  } else {
+  } else if (!nextChain) {
     // Pega a cadeia com mais palavras (mais estabelecida)
     nextChain = chains.reduce<RhymeChain | null>(
       (best, c) => (!best || c.words.length > best.words.length) ? c : best,
@@ -103,9 +108,13 @@ function findNextRhymeTarget(
     )
   }
 
-  // Sugestões do motor de rimas para a última palavra
+  const seedWord = schemeTarget?.word || nextChain?.words[0] || lastWord
+
+  // Sugestões do motor de rimas para a palavra que fecha o próximo desenho.
   const rhymeSuggestion = suggestions.find(s => s.forWord === lastWord)
-  const baseRhymes = rhymeSuggestion?.suggestions ?? []
+  const baseRhymes = seedWord
+    ? findRhymesTyped(seedWord, 10).map(r => r.word)
+    : rhymeSuggestion?.suggestions ?? []
 
   // Adiciona palavras da cadeia encontrada (exceto as já usadas)
   const chainRhymes = nextChain
@@ -116,10 +125,43 @@ function findNextRhymeTarget(
   const allRhymes = [...new Set([...baseRhymes, ...chainRhymes, ...RHYME_BRIDGES.default])]
 
   return {
-    targetEndRhyme: allRhymes[0] ?? lastWord,
+    targetEndRhyme: allRhymes[0] ?? seedWord ?? lastWord,
     rhymeOptions:   allRhymes.slice(0, 6),
-    nextRhymeClass: nextChain?.label ?? null,
+    nextRhymeClass: schemeTarget?.label ?? nextChain?.label ?? null,
   }
+}
+
+function inferSchemeTarget(rhymeAnalysis: RhymeAnalysis): { label: string; word: string } | null {
+  const currentBlock = rhymeAnalysis.schemeBlocks.at(-1)
+  if (!currentBlock || currentBlock.labels.length >= 4) return null
+
+  const labels = currentBlock.labels.filter(Boolean) as string[]
+  if (labels.length < 2) return null
+
+  const nextLabel = inferNextLabel(labels)
+  if (!nextLabel) return null
+
+  const localIndex = currentBlock.labels.findIndex(label => label === nextLabel)
+  const word = currentBlock.endWords[localIndex]
+  if (!word) return null
+
+  return { label: nextLabel, word }
+}
+
+function inferNextLabel(labels: string[]): string | null {
+  if (labels.length === 2) {
+    if (labels[0] !== labels[1]) return labels[0] // AB -> prepara ABAB
+    return null
+  }
+
+  if (labels.length === 3) {
+    if (labels[0] === labels[2]) return labels[1] // ABA -> ABAB
+    if (labels[1] === labels[2]) return labels[2] // ABB -> ABBB/ABBB fechado
+    if (labels[0] === labels[1]) return labels[2] // AAB -> AABB
+    return labels[1] // ABC -> ABCB, muito comum em quadrinha
+  }
+
+  return null
 }
 
 function extractLastWord(line: string): string {

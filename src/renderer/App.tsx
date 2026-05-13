@@ -194,6 +194,20 @@ export default function App() {
     replaceWordAtSelection(editor, word)
   }
 
+  function insertSuggestedLine(line: string) {
+    if (!editor) return
+    const escaped = line
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+
+    editor
+      .chain()
+      .focus('end')
+      .insertContent(`<p>${escaped}</p>`)
+      .run()
+  }
+
   async function handleNewLyric() {
     if (!window.flowAPI) return
 
@@ -245,6 +259,7 @@ export default function App() {
         dictLoading={dictLoading}
         onTabChange={setActiveTab}
         onInsertWord={insertDictionaryWord}
+        onInsertLine={insertSuggestedLine}
       />
     </div>
   )
