@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
 import { analyzeMetrics, scoreBreathLoad, scoreBlockConsistency, generateLineAlerts } from '../../features/metrics/MetricsService'
+import { useEditorStore } from '../../features/editor/editorStore'
 import { getRhymeStrength, getPredictableEndingLabel, type RhymeStrength } from '../../features/rhyme/rhymeScoring'
 import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
 import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
@@ -246,7 +247,8 @@ function FlowMeterDial({
 }
 
 function MetricsTab({ lines }: { lines: string[] }) {
-  const analysis = analyzeMetrics(lines.join('\n'))
+  const { bpm } = useEditorStore()
+  const analysis = analyzeMetrics(lines.join('\n'), bpm)
 
   if (analysis.lines.length === 0) {
     return (
@@ -264,7 +266,7 @@ function MetricsTab({ lines }: { lines: string[] }) {
   const fitScore = scoreLineFit(analysis.lines, average)
   const metricScore = clampPercent(analysis.regularityScore)
   const rhythmScore = scoreRhythm(analysis.lines, analysis.regularityScore)
-  const breathScore = scoreBreathLoad(analysis.lines)
+  const breathScore = scoreBreathLoad(analysis.lines, bpm)
   const blockScore = scoreBlockConsistency(analysis.lines)
   const flowScore = clampPercent(
     metricScore * 0.35 + fitScore * 0.22 + speedScore * 0.18 +
@@ -326,7 +328,7 @@ function MetricsTab({ lines }: { lines: string[] }) {
           const width = Math.max(8, Math.min(100, (line.syllableCount / Math.max(average + 8, 16)) * 100))
           const blockNumber = Math.floor(index / 4) + 1
           const positionInBlock = (index % 4) + 1
-          const alerts = generateLineAlerts(line, average)
+          const alerts = generateLineAlerts(line, average, bpm)
 
           return (
             <div key={index} className="bg-[#19191f] border border-[#2b2b36] p-3 rounded-md hover:border-purple-800/50 transition">

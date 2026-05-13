@@ -9,7 +9,9 @@ const BEATS_PER_BAR = 4
 const BARS_PER_VERSE_LINE = 2        // tipicamente 2 compassos por linha
 const DEFAULT_SYLLABLES_PER_BEAT = 2 // flow médio: 2 sílabas por beat
 
-function getBeatFill(syllables: number, bpm: number): { bars: number; fill: number; density: 'slow' | 'ok' | 'fast' | 'double' } {
+function getBeatFill(syllables: number, bpm: number): {
+  bars: number; fill: number; density: 'slow' | 'ok' | 'fast' | 'double'; msPerSyl: number; pressure: 'ok' | 'high' | 'extreme'
+} {
   const beatsPerLine = BEATS_PER_BAR * BARS_PER_VERSE_LINE
   const syllablesPerBeat = syllables / beatsPerLine
 
@@ -21,7 +23,12 @@ function getBeatFill(syllables: number, bpm: number): { bars: number; fill: numb
 
   const fill = Math.min(1, syllablesPerBeat / 4)
 
-  return { bars: BARS_PER_VERSE_LINE, fill, density }
+  // ms disponíveis por sílaba: indica dificuldade de entrega ao BPM atual
+  const msPerSyl = syllables > 0 ? Math.round(480000 / (bpm * syllables)) : 999
+  const pressure: 'ok' | 'high' | 'extreme' =
+    msPerSyl < 180 ? 'extreme' : msPerSyl < 240 ? 'high' : 'ok'
+
+  return { bars: BARS_PER_VERSE_LINE, fill, density, msPerSyl, pressure }
 }
 
 const DENSITY_COLORS = {
@@ -50,6 +57,10 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
   const msPerBeat = 60000 / bpm
   const msPerBar  = msPerBeat * BEATS_PER_BAR
   const msPerLine = msPerBar * BARS_PER_VERSE_LINE
+
+  // Referência de sílabas para este BPM
+  const comfortMax = Math.max(16, Math.round(1800 / bpm))
+  const targetSyl  = BEATS_PER_BAR * BARS_PER_VERSE_LINE * 2  // 2 síl/beat = padrão
 
   return (
     <div className="p-3 space-y-4">
@@ -80,7 +91,7 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
       </div>
 
       {/* Info de tempo */}
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         <div className="bg-studio-elevated rounded p-2 text-center">
           <div className="text-sm font-bold font-mono text-accent-secondary">
             {(msPerBeat / 1000).toFixed(2)}s
@@ -93,6 +104,19 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
           </div>
           <div className="text-[10px] text-text-muted">por 2 compassos</div>
         </div>
+        <div className="bg-studio-elevated rounded p-2 text-center">
+          <div className="text-sm font-bold font-mono text-accent-green">
+            {targetSyl}
+          </div>
+          <div className="text-[10px] text-text-muted">síl. alvo</div>
+        </div>
+      </div>
+
+      {/* Referência de conforto */}
+      <div className="bg-studio-elevated rounded p-2 flex items-center justify-between text-[10px]">
+        <span className="text-text-muted">Confortável até</span>
+        <span className="font-bold font-mono text-accent-primary">{comfortMax} síl/verso</span>
+        <span className="text-text-muted">a {bpm} BPM</span>
       </div>
 
       {/* Beat grid por linha */}
@@ -103,8 +127,11 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
           </h3>
           <div className="space-y-1.5 max-h-64 overflow-y-auto">
             {metricsAnalysis.lines.map((line, idx) => {
-              const { fill, density } = getBeatFill(line.syllableCount, bpm)
+              const { fill, density, msPerSyl, pressure } = getBeatFill(line.syllableCount, bpm)
               const colors = DENSITY_COLORS[density]
+              const pressureColor =
+                pressure === 'extreme' ? 'text-accent-red' :
+                pressure === 'high'    ? 'text-accent-gold' : 'text-text-muted'
 
               return (
                 <div key={idx} className="bg-studio-elevated rounded px-2 py-1.5">
@@ -113,6 +140,7 @@ export function BPMPanel({ bpm, onBpmChange }: Props) {
                       {line.text.substring(0, 28)}{line.text.length > 28 ? '…' : ''}
                     </span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-[9px] font-mono ${pressureColor}`}>{msPerSyl}ms/síl</span>
                       <span className={`text-[9px] font-bold ${colors.text}`}>{colors.label}</span>
                       <span className="text-[9px] font-mono text-text-muted">{line.syllableCount}s</span>
                     </div>

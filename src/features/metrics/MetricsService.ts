@@ -20,7 +20,7 @@ const FLOW_THRESHOLDS = {
 /**
  * Analisa métricas de um texto completo linha por linha
  */
-export function analyzeMetrics(text: string): MetricsAnalysis {
+export function analyzeMetrics(text: string, bpm = 90): MetricsAnalysis {
   const rawLines = text.split('\n').map(l => l.trim())
   const contentLines = rawLines.filter(Boolean)
 
@@ -28,7 +28,7 @@ export function analyzeMetrics(text: string): MetricsAnalysis {
     return emptyMetrics()
   }
 
-  const lineMetrics: LineMetrics[] = contentLines.map((line, idx) => analyzeLine(line, idx))
+  const lineMetrics: LineMetrics[] = contentLines.map((line, idx) => analyzeLine(line, idx, bpm))
 
   const totalSyllables = lineMetrics.reduce((s, l) => s + l.syllableCount, 0)
   const totalWords = contentLines.join(' ').split(/\s+/).filter(Boolean).length
@@ -59,14 +59,16 @@ export function analyzeMetrics(text: string): MetricsAnalysis {
 /**
  * Analisa uma linha individualmente
  */
-export function analyzeLine(line: string, lineIndex: number): LineMetrics {
+export function analyzeLine(line: string, lineIndex: number, bpm = 90): LineMetrics {
   const syllableCount = countLineSyllables(line)
   const estimatedStressWords = estimateStressWords(line)
   const breathPoints = suggestBreathPoints(line, syllableCount)
   const elisions = detectElisions(line)
   const flowSpeed = estimateLineFlow(syllableCount)
 
-  const isTooLong = syllableCount > 20
+  // Limite de sílabas ajustado ao BPM: música mais rápida tolera menos sílabas por verso
+  const tooLongThreshold = Math.max(16, Math.round(1800 / bpm))
+  const isTooLong = syllableCount > tooLongThreshold
   const isTooShort = syllableCount < 5 && line.split(/\s+/).length > 2
 
   const suggestions = generateLineSuggestions(syllableCount, isTooLong, isTooShort, flowSpeed)
@@ -156,9 +158,11 @@ function generateWarnings(lines: LineMetrics[], avg: number): string[] {
   return warnings
 }
 
-export function scoreBreathLoad(lines: LineMetrics[]): number {
+export function scoreBreathLoad(lines: LineMetrics[], bpm = 90): number {
   if (lines.length === 0) return 0
-  const forced = lines.filter(l => l.syllableCount >= 15 && l.breathPoints.length === 0).length
+  // BPM mais alto → exige respiro com menos sílabas (entrega física mais exigente)
+  const breathThreshold = Math.max(10, Math.round(1350 / bpm))
+  const forced = lines.filter(l => l.syllableCount >= breathThreshold && l.breathPoints.length === 0).length
   return Math.max(0, Math.min(100, Math.round(100 - (forced / lines.length) * 80)))
 }
 
@@ -180,26 +184,35 @@ export function scoreBlockConsistency(lines: LineMetrics[]): number {
   return Math.round(blockScores.reduce((a, b) => a + b, 0) / blockScores.length)
 }
 
-export function generateLineAlerts(line: LineMetrics, average: number): string[] {
+export function generateLineAlerts(line: LineMetrics, average: number, bpm = 90): string[] {
   const alerts: string[] = []
   const diff = line.syllableCount - average
 
   if (line.syllableCount >= 22) {
     alerts.push(`${line.syllableCount} síl — double time ou divida`)
-  } else if (line.syllableCount >= 20) {
-    alerts.push(`${line.syllableCount} síl — muito longa`)
+  } else if (line.isTooLong) {
+    alerts.push(`${line.syllableCount} síl — muito longa p/ ${bpm} BPM`)
   } else if (diff >= 5) {
     alerts.push(`+${Math.round(diff)} síl acima da média`)
   }
 
   if (line.isTooShort) alerts.push('muito curta')
 
-  if (line.syllableCount >= 15 && line.breathPoints.length === 0) {
+  const breathThreshold = Math.max(10, Math.round(1350 / bpm))
+  if (line.syllableCount >= breathThreshold && line.breathPoints.length === 0) {
     alerts.push('sem respiro — risco de rush')
   }
 
   if (line.flowSpeed === 'very_fast' && line.syllableCount < 22) {
     alerts.push('duplo tempo')
+  }
+
+  // Pressão de entrega: ms disponíveis por sílaba ao BPM atual
+  if (line.syllableCount > 0) {
+    const msPerSyl = Math.round(480000 / (bpm * line.syllableCount))
+    if (msPerSyl < 200 && bpm >= 120) {
+      alerts.push(`${msPerSyl}ms/síl — entrega exigente`)
+    }
   }
 
   return alerts

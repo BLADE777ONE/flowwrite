@@ -29,7 +29,7 @@ export interface WorkerOutput {
 
 // ─── Handler principal do Worker ─────────────────────────────────────────────
 self.onmessage = (event: MessageEvent<WorkerInput>) => {
-  const { type, content, vibe } = event.data
+  const { type, content, vibe, bpm = 90 } = event.data
 
   if (type !== 'analyze' || !content?.trim()) {
     self.postMessage({ type: 'result' })
@@ -45,7 +45,7 @@ self.onmessage = (event: MessageEvent<WorkerInput>) => {
     self.postMessage({ type: 'progress', progress: 30 })
 
     // 2. Análise de métricas
-    const metricsAnalysis = analyzeMetrics(content)
+    const metricsAnalysis = analyzeMetrics(content, bpm)
     self.postMessage({ type: 'progress', progress: 55 })
 
     // 3. Detecção de clichês
