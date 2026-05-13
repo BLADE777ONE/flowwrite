@@ -171,6 +171,18 @@ Renderer (React)
 
 ---
 
+## O que já funciona no Estágio 2
+
+- ✅ Highlights visuais no TipTap para rimas finais e internas
+- ✅ Dicionário urbano híbrido com gírias, sinônimos, relacionados e antônimos
+- ✅ Banco local massivo de vocabulário urbano gerado por script
+- ✅ Flow Meter 2.0 com média silábica, regularidade, velocidade e alertas por linha
+- ✅ Blocos de seção no editor: Intro / Verso / Refrão / Bridge / Outro / Freestyle
+- ✅ Persistência de conteúdo TipTap em HTML sem quebrar análise de texto puro
+- ✅ Layout refinado com sidebar, editor central e painel direito mais consistentes
+
+---
+
 ## Limitações do MVP (Estágio 1)
 
 | Limitação | Motivo | Solução Futura |
@@ -178,7 +190,6 @@ Renderer (React)
 | Fonética heurística | Sem corpus linguístico real | Integrar biblioteca CMUDict PT-BR |
 | Rima rich/poor aproximada | Sem POS tagger | Integrar spaCy ou similar offline |
 | Escansão simplificada | Separação silábica real é complexa | Dataset de separação silábica |
-| Sem highlights no editor | TipTap marks requer implementação extra | Extension personalizada no Estágio 2 |
 | Artist DNA só na sessão | Worker não persiste entre sessões | Salvar no SQLite via IPC no Estágio 2 |
 | Sem BPM automático | Requer análise de áudio | Integrar Aubio no Estágio 3 |
 
@@ -186,14 +197,13 @@ Renderer (React)
 
 ## Próximos Passos — Estágio 2
 
-1. **Highlights visuais** no TipTap — colorir cadeias de rima diretamente no editor
-2. **Ghost Notes overlay** — marcadores de tônica acima das palavras
-3. **Persistência do Artist DNA** — salvar perfil no banco após cada save
-4. **Blocos de seção** — Intro / Verso / Refrão como nós TipTap distintos
-5. **Dicionário expansível** — usuário pode adicionar suas próprias rimas
-6. **Versioning de letras** — histórico de versões com diff visual
-7. **Modo Ghostwriter** — sugestão de verso no mesmo estilo do artista
-8. **BPM manual** — grid visual de encaixe no beat
+1. **Ghost Notes overlay** — marcadores de tônica acima das palavras
+2. **Persistência do Artist DNA** — salvar perfil no banco após cada save
+3. **Dicionário expansível** — usuário pode adicionar suas próprias rimas e gírias
+4. **Versioning de letras** — histórico de versões com diff visual
+5. **Modo Ghostwriter** — sugestão de verso no mesmo estilo do artista
+6. **BPM manual** — grid visual de encaixe no beat
+7. **Empacotamento Windows** — gerar instalador final via Electron Builder
 
 ---
 
