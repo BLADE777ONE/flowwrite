@@ -3,6 +3,28 @@
 
 import { RhymeType, RhymeScheme } from '../../shared/types/Rhyme'
 
+export type RhymeStrength = 'forte' | 'criativa' | 'mediana' | 'fraca'
+
+export function getRhymeStrength(score: number, type: RhymeType): RhymeStrength {
+  if (type === 'rich' || type === 'multisyllabic') return 'criativa'
+  if (type === 'poor' || type === 'assonance') return 'fraca'
+  if (score >= 0.85) return 'forte'
+  if (score >= 0.65) return 'mediana'
+  return 'fraca'
+}
+
+export function getPredictableEndingLabel(word: string): string | null {
+  const w = word.toLowerCase()
+  if (/(ção|são|ções)$/.test(w)) return 'final -ção muito comum'
+  if (/ando$/.test(w))           return 'gerúndio -ando previsível'
+  if (/endo$/.test(w))           return 'gerúndio -endo previsível'
+  if (/mente$/.test(w))          return 'advérbio -mente previsível'
+  if (/dade$/.test(w))           return 'sufixo -dade frequente'
+  if (/(eiro|eira)$/.test(w))    return 'sufixo -eiro frequente'
+  if (/(oso|osa)$/.test(w))      return 'sufixo -oso frequente'
+  return null
+}
+
 /**
  * Determina o tipo de rima baseado no score e contexto
  */

@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { analyzeRhymes, findRhymesTyped, type RhymeSuggestion } from '../../features/rhyme/RhymeService'
 import { analyzeMetrics, scoreBreathLoad, scoreBlockConsistency, generateLineAlerts } from '../../features/metrics/MetricsService'
+import { getRhymeStrength, getPredictableEndingLabel, type RhymeStrength } from '../../features/rhyme/rhymeScoring'
 import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
 import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
 import type { ActiveToolTab } from '../types'
-import type { RhymeSchemeBlock } from '../../shared/types/Rhyme'
+import type { RhymeAnalysis, RhymeSchemeBlock } from '../../shared/types/Rhyme'
 
 interface RightPanelProps {
   activeTab: ActiveToolTab
@@ -374,6 +375,13 @@ function MetricsTab({ lines }: { lines: string[] }) {
   )
 }
 
+const STRENGTH_STYLES: Record<RhymeStrength, { badge: string; bar: string; label: string }> = {
+  forte:    { badge: 'bg-green-900/40 text-green-300 border-green-800',    bar: 'bg-green-500',   label: 'FORTE'    },
+  criativa: { badge: 'bg-purple-900/40 text-purple-300 border-purple-800', bar: 'bg-purple-500',  label: 'CRIATIVA' },
+  mediana:  { badge: 'bg-blue-900/40 text-blue-300 border-blue-800',      bar: 'bg-blue-500',    label: 'MEDIANA'  },
+  fraca:    { badge: 'bg-gray-800 text-gray-500 border-gray-700',         bar: 'bg-gray-600',    label: 'FRACA'    },
+}
+
 function schemeTone(type: string): string {
   if (type === 'free') return 'text-gray-400 border-gray-800 bg-gray-900/30'
   if (type === 'mixed') return 'text-yellow-300 border-yellow-800/60 bg-yellow-950/20'
@@ -407,9 +415,7 @@ function RhymeSchemeBlockCard({ block }: { block: RhymeSchemeBlock }) {
   )
 }
 
-function RhymeSchemePanel({ lines }: { lines: string[] }) {
-  const analysis = analyzeRhymes(lines.join('\n'))
-
+function RhymeSchemePanel({ analysis }: { analysis: RhymeAnalysis }) {
   if (analysis.endWords.length < 2) {
     return (
       <div className="rounded-md border border-[#2b2b36] bg-[#17171d] p-3 mb-4">
@@ -446,12 +452,108 @@ function RhymeSchemePanel({ lines }: { lines: string[] }) {
   )
 }
 
+function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
+  if (analysis.chains.length === 0) return null
+
+  const chainData = analysis.chains.map((chain) => {
+    const chainMatches = analysis.matches.filter(
+      (m) => chain.lines.includes(m.sourceLine) && chain.lines.includes(m.targetLine),
+    )
+    const avgScore = chainMatches.length > 0
+      ? chainMatches.reduce((s, m) => s + m.score, 0) / chainMatches.length
+      : 0.5
+    const topMatch = chainMatches.length > 0
+      ? [...chainMatches].sort((a, b) => b.score - a.score)[0]
+      : null
+    const strength = getRhymeStrength(avgScore, topMatch?.type ?? 'approximate')
+    const repWord = chain.words[0] ?? ''
+    const predictable = repWord ? getPredictableEndingLabel(repWord) : null
+    const upgrades = (strength === 'fraca' || Boolean(predictable)) && repWord
+      ? findRhymesTyped(repWord, 8)
+          .filter((r) => r.type === 'exact' || r.type === 'rich' || r.type === 'multisyllabic')
+          .slice(0, 5)
+      : []
+
+    return { chain, strength, avgScore, predictable, upgrades }
+  })
+
+  return (
+    <div className="mb-5">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Cadeias de rima</p>
+      <div className="space-y-2">
+        {chainData.map(({ chain, strength, avgScore, predictable, upgrades }) => {
+          const style = STRENGTH_STYLES[strength]
+          return (
+            <div key={chain.id} className="rounded-md border border-[#2b2b36] bg-[#17171d] p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-black"
+                  style={{ backgroundColor: chain.color + '30', border: `1.5px solid ${chain.color}`, color: chain.color }}
+                >
+                  {chain.label}
+                </span>
+                <div className="flex-1 h-1.5 rounded-full bg-black/50 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${style.bar}`}
+                    style={{ width: `${Math.round(avgScore * 100)}%` }}
+                  />
+                </div>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black tracking-wider flex-shrink-0 ${style.badge}`}>
+                  {style.label}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-1.5">
+                {chain.words.slice(0, 6).map((word, i) => (
+                  <span
+                    key={`${word}-${i}`}
+                    className="text-[10px] px-1.5 py-0.5 rounded border bg-white/5 border-white/10 text-gray-300 font-mono"
+                  >
+                    {word}
+                  </span>
+                ))}
+                {chain.words.length > 6 && (
+                  <span className="text-[10px] text-gray-600">+{chain.words.length - 6}</span>
+                )}
+              </div>
+
+              {predictable && (
+                <p className="text-[10px] text-yellow-400 bg-yellow-900/20 border border-yellow-900/30 rounded px-2 py-1 mb-1.5">
+                  {predictable}
+                </p>
+              )}
+
+              {upgrades.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-gray-600 mb-1">Alternativas mais fortes:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {upgrades.map((r, i) => (
+                      <span
+                        key={`${r.word}-${i}`}
+                        className="text-[10px] px-1.5 py-0.5 rounded border bg-purple-950/30 text-purple-300 border-purple-800/50 font-mono"
+                      >
+                        {r.word}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function RhymesTab({ selectedWord, lines }: { selectedWord: string; lines: string[] }) {
   const rhymes = findRhymesTyped(selectedWord, 16)
+  const analysis = analyzeRhymes(lines.join('\n'))
 
   return (
     <div>
-      <RhymeSchemePanel lines={lines} />
+      <RhymeSchemePanel analysis={analysis} />
+      <ChainAnalysisPanel analysis={analysis} />
 
       <div className="mb-4">
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Rimas</h3>
