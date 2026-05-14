@@ -97,7 +97,7 @@ function looksRich(a: string, b: string): boolean {
     (aIsNoun && bIsVerb) || (aIsAdj && bIsVerb)
 }
 
-// Cores para cadeias de rimas (estilo FlowWriter)
+// Cores para cadeias de rimas (estilo OBloco)
 const RHYME_COLORS = [
   '#7c3aed', // A - roxo
   '#06b6d4', // B - ciano

@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS = [
 
 async function seed() {
   const db = getDB()
-  console.log('🌱 Iniciando seed do banco FlowWriter…')
+  console.log('🌱 Iniciando seed do banco OBloco…')
 
   // Dicionário de rimas
   for (const entry of INITIAL_RHYME_ENTRIES) {

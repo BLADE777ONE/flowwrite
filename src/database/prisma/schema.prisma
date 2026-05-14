@@ -1,5 +1,5 @@
 // src/database/prisma/schema.prisma
-// FlowWriter — Schema local SQLite via Prisma
+// OBloco — Schema local SQLite via Prisma
 
 generator client {
   provider = "prisma-client-js"

@@ -83,7 +83,7 @@ export default function App() {
     extensions: [
       StarterKit,
       SectionNode,
-      Placeholder.configure({ placeholder: 'Comece a escrever suas barras...' }),
+      Placeholder.configure({ placeholder: 'Abra o bloco e escreva suas barras...' }),
       RhymeHighlightExtension,
       LineGutterExtension,
     ],

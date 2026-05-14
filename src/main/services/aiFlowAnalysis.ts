@@ -6,7 +6,7 @@ const AI_AUTH_ERROR = 'A chave da IA não foi aceita. Confira se a AI_API_KEY es
 const AI_QUOTA_ERROR = 'A IA bateu limite de uso agora. Aguarde um pouco ou confira a cota da chave.'
 const AI_REQUEST_ERROR = 'A IA recusou o pedido. Confira o modelo configurado em AI_MODEL ou tente novamente.'
 
-const SYSTEM_PROMPT = `Você é o Assistente Lírico e Rítmico do "O BLOCO", um software premium para MCs de Rap, Trap e Plug. Sua função é analisar versos, identificar falhas de métrica e sugerir melhorias baseadas nas seguintes regras de engenharia de flow:
+const SYSTEM_PROMPT = `Você é o Assistente Lírico e Rítmico do OBloco, um software premium para MCs de Rap, Trap e Plug. Sua função é analisar versos, identificar falhas de métrica e sugerir melhorias baseadas nas seguintes regras de engenharia de flow:
 
 1. REGRAS DE DENSIDADE E BPM:
 - Boom Bap (85-95 BPM): O ideal são 10 a 14 sílabas por compasso.

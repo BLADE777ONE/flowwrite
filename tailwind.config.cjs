@@ -60,7 +60,7 @@ module.exports = {
         mono:  ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'monospace'],
         sans:  ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         serif: ['Georgia', 'Cambria', 'serif'],
-        display: ['Inter', 'sans-serif'],
+        display: ['Azeret Mono', 'Inter', 'sans-serif'],
       },
 
       boxShadow: {

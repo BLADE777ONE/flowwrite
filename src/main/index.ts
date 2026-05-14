@@ -1,5 +1,5 @@
 // src/main/index.ts
-// Electron Main Process — FlowWriter
+// Electron Main Process — OBloco
 
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'path'
@@ -111,7 +111,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     backgroundColor: '#07070f',
-    title: 'FlowWriter Studio',
+    title: 'OBloco',
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#0d0d1a',

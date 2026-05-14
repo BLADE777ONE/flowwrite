@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# server.py — FlowWriter Python Analysis Server
+# server.py — OBloco Python Analysis Server
 # Roda em localhost:5001, chamado pelo Electron main process
 
 import sys
@@ -175,6 +175,6 @@ def rhyme_score_endpoint():
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    print(f'[FlowWriter Python] Servidor iniciando em http://127.0.0.1:{PORT}', flush=True)
-    print(f'[FlowWriter Python] pyphen: {"OK" if HAS_PYPHEN else "NAO instalado — usando fallback"}', flush=True)
+    print(f'[OBloco Python] Servidor iniciando em http://127.0.0.1:{PORT}', flush=True)
+    print(f'[OBloco Python] pyphen: {"OK" if HAS_PYPHEN else "NAO instalado — usando fallback"}', flush=True)
     app.run(host='127.0.0.1', port=PORT, debug=False, threaded=True)

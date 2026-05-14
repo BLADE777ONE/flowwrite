@@ -13,12 +13,17 @@ export function Sidebar({ songs, currentProject, currentSong, onNewLyric, onSele
     <aside className="w-60 bg-[#08080c] border-r border-white/[0.07] flex flex-col shadow-[12px_0_36px_rgba(0,0,0,0.22)]">
       <div className="px-3.5 pt-3.5 pb-3 border-b border-white/[0.06]">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-100 font-black shadow-[0_0_18px_rgba(168,85,247,0.18)]">
-            F
+          <div className="h-9 w-9 rounded-lg border border-cyan-400/35 bg-[#101018] flex items-center justify-center shadow-[0_0_22px_rgba(0,229,255,0.13)]">
+            <svg viewBox="0 0 32 32" aria-hidden="true" className="h-6 w-6 text-cyan-300">
+              <rect x="7" y="5" width="18" height="22" rx="3" fill="currentColor" opacity="0.12" />
+              <rect x="9" y="7" width="14" height="18" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M12 12h8M12 16h6M12 20h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M24 10h2M24 14h2M24 18h2" stroke="#a855f7" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-black text-white leading-tight tracking-tight">FlowWriter</h1>
-            <p className="text-[9px] text-cyan-300 uppercase tracking-[0.2em] font-bold">Studio</p>
+            <h1 className="font-display text-[15px] font-black text-white leading-tight tracking-tight">OBloco</h1>
+            <p className="text-[9px] text-cyan-300 uppercase tracking-[0.18em] font-black">Rhyme Studio</p>
           </div>
         </div>
 

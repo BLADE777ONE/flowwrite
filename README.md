@@ -1,7 +1,7 @@
-# 🎵 FlowWriter — Estúdio de Escrita Inteligente
+# OBloco — Estúdio de Escrita Inteligente
 
-Software desktop para composição de rap, trap, drill, boombap e estilos urbanos.  
-Roda 100% local. Sem IA online. Sem envio de dados.
+Software desktop para composição de rap, trap, drill, boombap e estilos urbanos.
+Roda localmente, com recursos de IA opcionais e desabilitados por padrão.
 
 ---
 

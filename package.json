@@ -1,5 +1,5 @@
 {
-  "name": "flowwriter",
+  "name": "obloco",
   "version": "1.0.0",
   "description": "Estúdio de escrita inteligente para música urbana",
   "main": "dist-electron/main/index.js",
@@ -48,8 +48,8 @@
     "schema": "src/database/prisma/schema.prisma"
   },
   "build": {
-    "appId": "com.flowwriter.app",
-    "productName": "FlowWriter",
+    "appId": "com.obloco.app",
+    "productName": "OBloco",
     "win": {
       "target": "nsis"
     },
