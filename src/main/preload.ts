@@ -59,10 +59,6 @@ const AI_CHANNELS = [
   'ai:analyzeFlow',
 ] as const
 
-const AUDIO_CHANNELS = [
-  'audio:select',
-] as const
-
 // Python analysis server
 const PYTHON_CHANNELS = [
   'python:health',
@@ -82,7 +78,6 @@ type AllChannels =
   | typeof RHYME_DICT_CHANNELS[number]
   | typeof USER_WORD_CHANNELS[number]
   | typeof AI_CHANNELS[number]
-  | typeof AUDIO_CHANNELS[number]
   | typeof PYTHON_CHANNELS[number]
 
 const ALL_CHANNELS: ReadonlyArray<AllChannels> = [
@@ -94,7 +89,6 @@ const ALL_CHANNELS: ReadonlyArray<AllChannels> = [
   ...RHYME_DICT_CHANNELS,
   ...USER_WORD_CHANNELS,
   ...AI_CHANNELS,
-  ...AUDIO_CHANNELS,
   ...PYTHON_CHANNELS,
 ]
 

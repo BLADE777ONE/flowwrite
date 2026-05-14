@@ -32,10 +32,6 @@ interface SidebarProps {
   onNewProject: () => void
   onRenameProject: (id: string, title: string) => void
   onDeleteProject: (id: string) => void
-  audioName: string | null
-  audioPath: string | null
-  audioUrl: string | null
-  onAttachAudio: () => void
 }
 
 function ProjectItem({
@@ -136,15 +132,8 @@ export function Sidebar({
   onNewProject,
   onRenameProject,
   onDeleteProject,
-  audioName,
-  audioPath,
-  audioUrl,
-  onAttachAudio,
 }: SidebarProps) {
   const { bpm } = useEditorStore()
-  const audioSrc = audioPath
-    ? `http://127.0.0.1:5057/audio?path=${encodeURIComponent(audioPath)}`
-    : audioUrl ?? undefined
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   return (
@@ -278,41 +267,19 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Beat de referencia */}
+      {/* BPM info */}
       <div className="px-3.5 py-3 border-t border-white/[0.06]">
-        <div className="rounded-md border border-white/[0.06] bg-black/30 p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300 font-black">Beat</p>
-              <p className="mt-1 truncate text-[10px] text-gray-400">
-                {audioName ?? 'Nenhum audio anexado'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onAttachAudio}
-              className="rounded border border-purple-500/40 bg-purple-600/20 px-2 py-1 text-[10px] font-black text-purple-100 transition hover:bg-purple-600/35"
-              title="Anexar beat de referencia"
-            >
-              Anexar
-            </button>
-          </div>
-
-          {audioName ? (
-            <audio
-              key={audioSrc}
-              className="mt-2 h-8 w-full"
-              controls
-              preload="metadata"
-              src={audioSrc}
-            />
-          ) : (
-            <div className="mt-2 h-10 rounded border border-dashed border-white/[0.08] bg-white/[0.02] px-2 py-2">
-              <p className="text-[10px] leading-snug text-gray-600">
-                Coloque o beat da letra aqui para escrever ouvindo a referencia.
-              </p>
-            </div>
-          )}
+        <div className="h-14 rounded-md border border-white/[0.06] bg-black/30 px-2 py-2 flex items-end gap-1 overflow-hidden">
+          {Array.from({ length: 28 }).map((_, index) => {
+            const height = 16 + ((index * 13) % 34)
+            return (
+              <span
+                key={index}
+                className="flex-1 rounded-full bg-gradient-to-t from-purple-700 to-cyan-300 opacity-70"
+                style={{ height: `${height}px` }}
+              />
+            )
+          })}
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
           <span>BPM</span>

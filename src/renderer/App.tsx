@@ -59,11 +59,6 @@ function getActiveBarIndex(editor: Editor): number {
 
 type SongMetadata = {
   bpm?: number
-  audio?: {
-    path: string
-    name: string
-    url?: string
-  } | null
 }
 
 function parseSongMetadata(song: Song | null): SongMetadata {
@@ -340,20 +335,6 @@ export default function App() {
     }
   }
 
-  async function handleAttachAudio() {
-    if (!currentSong || !window.flowAPI) return
-    const result = await window.flowAPI.invoke('audio:select') as { canceled: boolean; path?: string; name?: string; url?: string }
-    if (result.canceled || !result.path || !result.name) return
-
-    const metadataJson = buildSongMetadata(currentSong, {
-      bpm,
-      audio: { path: result.path, name: result.name, url: result.url },
-    })
-    await window.flowAPI.invoke('lyric:update', currentSong.id, { metadataJson })
-    setCurrentSong(prev => prev ? { ...prev, metadataJson } : prev)
-    setSongs(prev => prev.map(song => song.id === currentSong.id ? { ...song, metadataJson } : song))
-  }
-
   async function handleRenameProject(id: string, title: string) {
     if (!window.flowAPI) return
     await window.flowAPI.invoke('project:update', id, { title })
@@ -393,10 +374,6 @@ export default function App() {
         onNewProject={handleNewProject}
         onRenameProject={handleRenameProject}
         onDeleteProject={handleDeleteProject}
-        audioName={parseSongMetadata(currentSong).audio?.name ?? null}
-        audioPath={parseSongMetadata(currentSong).audio?.path ?? null}
-        audioUrl={parseSongMetadata(currentSong).audio?.url ?? null}
-        onAttachAudio={handleAttachAudio}
       />
 
       <div className="flex-1 min-w-0 flex flex-col relative bg-[#09090d]">
