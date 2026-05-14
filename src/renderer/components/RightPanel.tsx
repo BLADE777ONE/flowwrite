@@ -1039,7 +1039,64 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
   )
 }
 
+function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState('')
+  const hasText = text.trim().length >= 8
+
+  async function handleAnalyzeFlow() {
+    if (!hasText || !window.flowAPI) return
+    setLoading(true)
+    setResult('')
+    try {
+      const response = await window.flowAPI.invoke('ai:analyzeFlow', {
+        letraUsuario: text,
+        bpmAtual: bpm,
+      })
+      setResult(String(response || 'Não veio resposta da IA agora.'))
+    } catch {
+      setResult('Sinal do estúdio caiu. Verifique sua conexão.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="mb-5 rounded-lg border border-cyan-800/35 bg-cyan-950/10 p-3 shadow-[0_0_28px_rgba(34,211,238,0.06)]">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">IA de Flow</p>
+          <p className="text-[10px] text-gray-500 mt-1">Análise do bloco atual com BPM {bpm}.</p>
+        </div>
+        <span className="rounded border border-cyan-700/40 bg-black/25 px-2 py-1 text-[10px] font-mono text-cyan-200">
+          beta
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAnalyzeFlow}
+        disabled={!hasText || loading}
+        className="w-full rounded-md border border-cyan-700/50 bg-cyan-600/15 px-3 py-2 text-xs font-black uppercase tracking-wider text-cyan-100 transition hover:border-cyan-300/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {loading ? 'Analisando o pocket...' : 'Analisar com IA'}
+      </button>
+
+      {!hasText && (
+        <p className="mt-2 text-[10px] text-gray-600">Escreva algumas barras no bloco atual para liberar a análise.</p>
+      )}
+
+      {result && (
+        <div className="mt-3 rounded-md border border-white/[0.07] bg-black/25 p-3">
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-300">{result}</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | 'onInsertLine'>) {
+  const { bpm } = useEditorStore()
   const text = lines.join('\n').trim()
   const contentLines = lines.map(line => line.trim()).filter(Boolean)
 
@@ -1047,6 +1104,9 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
     return (
       <div>
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
+        <div className="mt-4">
+          <AIFlowAnalysisBox text={text} bpm={bpm} />
+        </div>
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">Escreva ao menos 2 linhas para o app entender seu desenho de rima.</p>
         </div>
@@ -1063,6 +1123,9 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
     return (
       <div>
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
+        <div className="mt-4">
+          <AIFlowAnalysisBox text={text} bpm={bpm} />
+        </div>
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">Continue escrevendo para gerar um alvo de próxima linha.</p>
         </div>
@@ -1076,6 +1139,8 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
         <p className="text-[10px] text-gray-600 mt-1">Sugestões locais baseadas no seu esquema e na métrica atual.</p>
       </div>
+
+      <AIFlowAnalysisBox text={text} bpm={bpm} />
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <MetricCard label="Alvo" value={suggestion.nextRhymeClass ?? 'livre'} />
