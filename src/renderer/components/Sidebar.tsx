@@ -1,3 +1,4 @@
+import { useEditorStore } from '../../features/editor/editorStore'
 import type { Project, Song } from '../types'
 
 interface SidebarProps {
@@ -9,6 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ songs, currentProject, currentSong, onNewLyric, onSelectSong }: SidebarProps) {
+  const { bpm } = useEditorStore()
   return (
     <aside className="w-60 bg-[#08080c] border-r border-white/[0.07] flex flex-col shadow-[12px_0_36px_rgba(0,0,0,0.22)]">
       <div className="px-3.5 pt-3.5 pb-3 border-b border-white/[0.06]">
@@ -86,7 +88,7 @@ export function Sidebar({ songs, currentProject, currentSong, onNewLyric, onSele
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
           <span>BPM</span>
-          <span className="font-mono text-gray-200">128</span>
+          <span className="font-mono text-gray-200">{bpm}</span>
           <span className="text-purple-300">A#m</span>
         </div>
       </div>

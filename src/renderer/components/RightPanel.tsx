@@ -1225,7 +1225,7 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
   }
 
   const rhymeAnalysis = analyzeRhymes(text)
-  const metricsAnalysis = analyzeMetrics(text)
+  const metricsAnalysis = analyzeMetrics(text, bpm)
   const suggestion = generateGhostwriterSuggestion(text, rhymeAnalysis, metricsAnalysis)
   const lastBlock = rhymeAnalysis.schemeBlocks.at(-1)
 

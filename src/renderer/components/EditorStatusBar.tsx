@@ -1,3 +1,4 @@
+import { useEditorStore } from '../../features/editor/editorStore'
 import type { TimelineSegment } from '../types'
 
 interface EditorStatusBarProps {
@@ -7,10 +8,8 @@ interface EditorStatusBarProps {
   segments: TimelineSegment[]
 }
 
-const BPM = 128
-
-function formatDuration(lineCount: number): string {
-  const barsPerMinute = BPM / 4
+function formatDuration(lineCount: number, bpm: number): string {
+  const barsPerMinute = bpm / 4
   const totalSecs = Math.round((lineCount / barsPerMinute) * 60)
   const mins = Math.floor(totalSecs / 60)
   const secs = totalSecs % 60
@@ -18,6 +17,7 @@ function formatDuration(lineCount: number): string {
 }
 
 export function EditorStatusBar({ lyrics, lineCount, saving, segments }: EditorStatusBarProps) {
+  const { bpm } = useEditorStore()
   const wordCount = lyrics.trim().split(/\s+/).filter(w => w.length > 0).length
   const charCount = lyrics.length
 
@@ -44,7 +44,6 @@ export function EditorStatusBar({ lyrics, lineCount, saving, segments }: EditorS
             </span>
           </div>
         ) : !isSectioned ? (
-          // Sem seções — gradient original com ticks por linha
           <div className="flex-1 flex items-end gap-px px-2 pb-1.5">
             {Array.from({ length: Math.min(lineCount, 96) }).map((_, i) => (
               <span
@@ -55,7 +54,6 @@ export function EditorStatusBar({ lyrics, lineCount, saving, segments }: EditorS
             ))}
           </div>
         ) : (
-          // Timeline segmentada por seções
           activeSegments.map((seg, i) => {
             const fraction = seg.lines / lineCount
             const tickCount = Math.min(seg.lines, 48)
@@ -66,19 +64,16 @@ export function EditorStatusBar({ lyrics, lineCount, saving, segments }: EditorS
                 style={{ flex: fraction }}
                 title={`${seg.label} — ${seg.lines} barras`}
               >
-                {/* Colored gradient background */}
                 <div
                   className="absolute inset-0"
                   style={{ background: `linear-gradient(to right, ${seg.color}28, ${seg.color}08)` }}
                 />
-                {/* Section label */}
                 <span
                   className="absolute left-1.5 top-[4px] text-[7px] font-black uppercase tracking-[0.18em] z-10 truncate leading-none"
                   style={{ color: seg.color, opacity: 0.75 }}
                 >
                   {seg.label}
                 </span>
-                {/* Line ticks */}
                 {Array.from({ length: tickCount }).map((_, j) => (
                   <span
                     key={j}
@@ -99,7 +94,7 @@ export function EditorStatusBar({ lyrics, lineCount, saving, segments }: EditorS
 
       {/* Duration + line indicator */}
       <div className="hidden lg:flex items-center gap-3 font-mono text-[10px] text-gray-500 min-w-max">
-        <span>{hasContent ? formatDuration(lineCount) : '--:--'}</span>
+        <span>{hasContent ? formatDuration(lineCount, bpm) : '--:--'}</span>
         <span className="text-cyan-300">L {lineCount.toString().padStart(2, '0')}</span>
       </div>
 

@@ -2,6 +2,7 @@ import { EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
 import { analyzeMetrics } from '../../features/metrics/MetricsService'
 import { analyzeRhymes } from '../../features/rhyme/RhymeService'
+import { useEditorStore } from '../../features/editor/editorStore'
 
 interface LyricsEditorProps {
   editor: Editor | null
@@ -19,9 +20,10 @@ function EditorStudioStrip({
   scopedLines: string[]
   activeBlockStart: number
 }) {
+  const { bpm } = useEditorStore()
   const contentLines = scopedLines.map(line => line.trim()).filter(Boolean)
   const scopedText = contentLines.join('\n')
-  const metrics = analyzeMetrics(scopedText)
+  const metrics = analyzeMetrics(scopedText, bpm)
   const rhyme = analyzeRhymes(scopedText)
   const currentBlock = Math.floor(activeBlockStart / 4) + 1
   const activeScheme = rhyme.schemeBlocks.at(-1)?.pattern ?? '----'

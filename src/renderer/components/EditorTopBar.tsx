@@ -91,8 +91,8 @@ export function EditorTopBar({
           />
         </div>
         <div className="h-8 rounded-md border border-white/[0.08] bg-black/30 px-2.5 flex items-center gap-2">
-          <span className="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-bold">Beat</span>
-          <span className="font-mono text-xs text-purple-200">Draft 01</span>
+          <span className="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-bold">4/4</span>
+          <span className="font-mono text-xs text-purple-200">{(60000 / bpm / 1000).toFixed(2)}s</span>
         </div>
       </div>
 
