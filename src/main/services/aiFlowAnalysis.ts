@@ -24,7 +24,13 @@ const SYSTEM_PROMPT = `Você é o Assistente Lírico e Rítmico do "O BLOCO", um
 - Um flow sem pausas é robótico. Recomende deixar espaços vazios (silêncio) no grid de 16 tempos para garantir a respiração e o swing da música.
 
 SEU TOM DE VOZ:
-Comunique-se de forma direta, técnica, mas usando a linguagem da cultura urbana (ex: "punchline", "flow", "bounce", "canetada", "atropelar o beat"). Seja objetivo, como um produtor experiente dentro do estúdio conversando com o MC.`
+Comunique-se de forma direta, técnica, mas usando a linguagem da cultura urbana (ex: "punchline", "flow", "bounce", "canetada", "atropelar o beat"). Seja objetivo, como um produtor experiente dentro do estúdio conversando com o MC.
+
+FORMATO DA RESPOSTA:
+- Não use markdown, asteriscos, tabelas ou blocos de código.
+- Responda em texto puro, curto e escaneável.
+- Use no máximo 5 seções: Diagnóstico, Risco, Elisão, Swing, Ajuste.
+- Cada seção deve ter 1 ou 2 frases curtas.`
 
 function buildUserPrompt(letraUsuario: string, bpmAtual: number): string {
   return `Analise diretamente este trecho para o MC, considerando o BPM atual da sessão.
@@ -34,28 +40,36 @@ BPM atual: ${bpmAtual}
 Letra do usuário:
 ${letraUsuario}
 
-Retorne uma análise curta e pronta para a interface, com:
-- diagnóstico do encaixe no BPM;
-- possíveis pontos de atropelamento;
-- sugestões de elisão fonética;
-- ideia de respiro/swing no grid;
-- recomendação objetiva de ajuste do flow.`
+Retorne uma análise curta, completa e pronta para a interface.
+Não use markdown.
+Estruture exatamente assim:
+Diagnóstico: ...
+Risco: ...
+Elisão: ...
+Swing: ...
+Ajuste: ...`
 }
 
-function extractGeminiText(data: unknown): string {
+function extractGeminiResult(data: unknown): { text: string; finishReason?: string } {
   const candidate = (data as any)?.candidates?.[0]
   const parts = candidate?.content?.parts
-  if (!Array.isArray(parts)) return ''
+  if (!Array.isArray(parts)) return { text: '', finishReason: candidate?.finishReason }
 
-  return parts
-    .map(part => typeof part?.text === 'string' ? part.text : '')
-    .join('\n')
-    .trim()
+  return {
+    text: parts
+      .map(part => typeof part?.text === 'string' ? part.text : '')
+      .join('\n')
+      .trim(),
+    finishReason: candidate?.finishReason,
+  }
 }
 
 function cleanResponse(text: string): string {
   return text
     .replace(/\r\n/g, '\n')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/^\s*[-*]\s+/gm, '')
+    .replace(/[ \t]+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
@@ -101,9 +115,10 @@ export async function analisarMétricaFlow(letraUsuario: string, bpmAtual: numbe
           },
         ],
         generationConfig: {
-          temperature: 0.35,
+          temperature: 0.25,
           topP: 0.9,
-          maxOutputTokens: 900,
+          maxOutputTokens: 1400,
+          responseMimeType: 'text/plain',
         },
       }),
     })
@@ -113,7 +128,11 @@ export async function analisarMétricaFlow(letraUsuario: string, bpmAtual: numbe
     }
 
     const data = await response.json()
-    const text = cleanResponse(extractGeminiText(data))
+    const result = extractGeminiResult(data)
+    const text = cleanResponse(result.text)
+    if (result.finishReason === 'MAX_TOKENS') {
+      return `${text}\n\nA análise foi cortada pelo limite da IA. Clique em analisar novamente para gerar uma versão menor.`
+    }
     return text || 'Não consegui ler o flow agora. Tenta mandar o trecho de novo.'
   } catch (error) {
     console.error('[AI Flow] Falha na análise:', error)
