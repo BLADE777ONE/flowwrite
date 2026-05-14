@@ -1042,12 +1042,14 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
 function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('')
+  const [expanded, setExpanded] = useState(false)
   const hasText = text.trim().length >= 8
 
   async function handleAnalyzeFlow() {
     if (!hasText || !window.flowAPI) return
     setLoading(true)
     setResult('')
+    setExpanded(false)
     try {
       const response = await window.flowAPI.invoke('ai:analyzeFlow', {
         letraUsuario: text,
@@ -1092,8 +1094,20 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
       )}
 
       {result && (
-        <div className="mt-3 rounded-md border border-white/[0.07] bg-black/25 p-3">
-          <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-300">{result}</p>
+        <div className="mt-3 rounded-md border border-white/[0.07] bg-black/25">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2">
+            <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">Resposta do produtor</p>
+            <button
+              type="button"
+              onClick={() => setExpanded(value => !value)}
+              className="rounded border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[10px] font-bold text-gray-300 transition hover:border-cyan-400/60 hover:text-white"
+            >
+              {expanded ? 'Menor' : 'Expandir'}
+            </button>
+          </div>
+          <div className={`editor-scroll overflow-y-auto px-3 py-3 ${expanded ? 'max-h-[28rem]' : 'max-h-56'}`}>
+            <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-300">{result}</p>
+          </div>
         </div>
       )}
     </section>
