@@ -250,32 +250,66 @@ export default function App() {
   }
 
   async function handleNewLyric() {
-    if (!window.flowAPI) return
-
-    let project = currentProject
-    if (!project) {
-      project = (await window.flowAPI.invoke('project:create', { title: 'Meu Projeto' })) as Project
-      setProjects(prev => [project!, ...prev])
-      setCurrentProject(project)
-    }
-
+    if (!currentProject || !window.flowAPI) return
     const newSong = (await window.flowAPI.invoke('lyric:create', {
-      projectId: project.id,
+      projectId: currentProject.id,
       title: 'Nova Letra',
     })) as Song
-
     setSongs(prev => [newSong, ...prev])
+    setProjects(prev => prev.map(p =>
+      p.id === currentProject.id
+        ? { ...p, _count: { songs: (p._count?.songs ?? 0) + 1 } }
+        : p
+    ))
     loadSong(newSong)
+  }
+
+  async function handleNewProject() {
+    if (!window.flowAPI) return
+    const newProject = (await window.flowAPI.invoke('project:create', { title: 'Novo Projeto' })) as Project
+    setProjects(prev => [{ ...newProject, _count: { songs: 0 } }, ...prev])
+    await loadProject(newProject)
+  }
+
+  async function handleRenameProject(id: string, title: string) {
+    if (!window.flowAPI) return
+    await window.flowAPI.invoke('project:update', id, { title })
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, title } : p))
+    if (currentProject?.id === id) setCurrentProject(prev => prev ? { ...prev, title } : prev)
+  }
+
+  async function handleDeleteProject(id: string) {
+    if (!window.flowAPI) return
+    const remaining = projects.filter(p => p.id !== id)
+    await window.flowAPI.invoke('project:delete', id)
+    setProjects(remaining)
+    if (currentProject?.id === id) {
+      if (remaining.length > 0) {
+        await loadProject(remaining[0])
+      } else {
+        setCurrentProject(null)
+        setSongs([])
+        setCurrentSong(null)
+        setTitle('')
+        setLyrics('')
+        editor?.commands.clearContent()
+      }
+    }
   }
 
   return (
     <div className="flex h-screen bg-[#050507] text-gray-200 font-sans overflow-hidden">
       <Sidebar
+        projects={projects}
         songs={songs}
         currentProject={currentProject}
         currentSong={currentSong}
         onNewLyric={handleNewLyric}
         onSelectSong={loadSong}
+        onSelectProject={loadProject}
+        onNewProject={handleNewProject}
+        onRenameProject={handleRenameProject}
+        onDeleteProject={handleDeleteProject}
       />
 
       <div className="flex-1 min-w-0 flex flex-col relative bg-[#09090d]">
