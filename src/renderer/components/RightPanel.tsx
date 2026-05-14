@@ -1043,6 +1043,7 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [showFullResult, setShowFullResult] = useState(false)
   const hasText = text.trim().length >= 8
 
   async function handleAnalyzeFlow() {
@@ -1050,6 +1051,7 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
     setLoading(true)
     setResult('')
     setExpanded(false)
+    setShowFullResult(false)
     try {
       const response = await window.flowAPI.invoke('ai:analyzeFlow', {
         letraUsuario: text,
@@ -1097,16 +1099,48 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
         <div className="mt-3 rounded-md border border-white/[0.07] bg-black/25">
           <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-2">
             <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">Resposta do produtor</p>
-            <button
-              type="button"
-              onClick={() => setExpanded(value => !value)}
-              className="rounded border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[10px] font-bold text-gray-300 transition hover:border-cyan-400/60 hover:text-white"
-            >
-              {expanded ? 'Menor' : 'Expandir'}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setExpanded(value => !value)}
+                className="rounded border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[10px] font-bold text-gray-300 transition hover:border-cyan-400/60 hover:text-white"
+              >
+                {expanded ? 'Menor' : 'Expandir'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFullResult(true)}
+                className="rounded border border-cyan-700/50 bg-cyan-600/15 px-2 py-1 text-[10px] font-bold text-cyan-100 transition hover:border-cyan-300/70 hover:bg-cyan-500/20"
+              >
+                Ver completo
+              </button>
+            </div>
           </div>
-          <div className={`editor-scroll overflow-y-auto px-3 py-3 ${expanded ? 'max-h-[28rem]' : 'max-h-56'}`}>
+          <div className={`editor-scroll overflow-y-auto px-3 py-3 ${expanded ? 'max-h-[55vh]' : 'max-h-56'}`}>
             <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-300">{result}</p>
+          </div>
+        </div>
+      )}
+
+      {showFullResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-8 backdrop-blur-sm">
+          <div className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-cyan-700/35 bg-[#08080c] shadow-[0_0_60px_rgba(0,229,255,0.14)]">
+            <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
+              <div>
+                <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">IA de Flow</p>
+                <h3 className="mt-1 text-lg font-black text-white">Resposta completa do produtor</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullResult(false)}
+                className="rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-xs font-bold text-gray-200 transition hover:border-cyan-400/60 hover:text-white"
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="editor-scroll flex-1 overflow-y-auto px-5 py-4">
+              <p className="whitespace-pre-wrap break-words text-sm leading-7 text-gray-200">{result}</p>
+            </div>
           </div>
         </div>
       )}
