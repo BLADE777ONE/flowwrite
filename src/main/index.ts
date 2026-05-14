@@ -13,6 +13,7 @@ import { registerExportHandlers } from './ipc/exportHandlers'
 import { registerSettingsHandlers } from './ipc/settingsHandlers'
 import { registerPythonHandlers } from './ipc/pythonHandlers'
 import { registerUserWordHandlers } from './ipc/userWordHandlers'
+import { registerAIHandlers } from './ipc/aiHandlers'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -169,6 +170,7 @@ app.whenReady().then(async () => {
   registerSettingsHandlers(db)
   registerUserWordHandlers(db)
   registerPythonHandlers(PYTHON_PORT)
+  registerAIHandlers()
 
   createWindow()
 
