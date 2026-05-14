@@ -14,7 +14,7 @@ import { registerSettingsHandlers } from './ipc/settingsHandlers'
 import { registerPythonHandlers } from './ipc/pythonHandlers'
 import { registerUserWordHandlers } from './ipc/userWordHandlers'
 import { registerAIHandlers } from './ipc/aiHandlers'
-import { registerAudioHandlers } from './ipc/audioHandlers'
+import { registerAudioHandlers, registerAudioProtocol, registerAudioProtocolPrivileges } from './ipc/audioHandlers'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -22,6 +22,8 @@ let mainWindow: BrowserWindow | null = null
 let pythonProcess: ChildProcess | null = null
 
 const PYTHON_PORT = 5001
+
+registerAudioProtocolPrivileges()
 
 // ─── Servidor Python ─────────────────────────────────────────────────────────
 
@@ -207,6 +209,7 @@ app.whenReady().then(async () => {
   registerUserWordHandlers(db)
   registerPythonHandlers(PYTHON_PORT)
   registerAIHandlers()
+  registerAudioProtocol()
   registerAudioHandlers()
 
   createWindow()

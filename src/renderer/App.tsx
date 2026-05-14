@@ -62,6 +62,7 @@ type SongMetadata = {
   audio?: {
     path: string
     name: string
+    url?: string
   } | null
 }
 
@@ -341,12 +342,12 @@ export default function App() {
 
   async function handleAttachAudio() {
     if (!currentSong || !window.flowAPI) return
-    const result = await window.flowAPI.invoke('audio:select') as { canceled: boolean; path?: string; name?: string }
+    const result = await window.flowAPI.invoke('audio:select') as { canceled: boolean; path?: string; name?: string; url?: string }
     if (result.canceled || !result.path || !result.name) return
 
     const metadataJson = buildSongMetadata(currentSong, {
       bpm,
-      audio: { path: result.path, name: result.name },
+      audio: { path: result.path, name: result.name, url: result.url },
     })
     await window.flowAPI.invoke('lyric:update', currentSong.id, { metadataJson })
     setCurrentSong(prev => prev ? { ...prev, metadataJson } : prev)
@@ -394,6 +395,7 @@ export default function App() {
         onDeleteProject={handleDeleteProject}
         audioName={parseSongMetadata(currentSong).audio?.name ?? null}
         audioPath={parseSongMetadata(currentSong).audio?.path ?? null}
+        audioUrl={parseSongMetadata(currentSong).audio?.url ?? null}
         onAttachAudio={handleAttachAudio}
       />
 

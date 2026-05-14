@@ -34,6 +34,7 @@ interface SidebarProps {
   onDeleteProject: (id: string) => void
   audioName: string | null
   audioPath: string | null
+  audioUrl: string | null
   onAttachAudio: () => void
 }
 
@@ -137,10 +138,11 @@ export function Sidebar({
   onDeleteProject,
   audioName,
   audioPath,
+  audioUrl,
   onAttachAudio,
 }: SidebarProps) {
   const { bpm } = useEditorStore()
-  const audioSrc = audioPath ? encodeURI(`file:///${audioPath.replace(/\\/g, '/')}`) : undefined
+  const audioSrc = audioUrl ?? (audioPath ? `obloco-audio://beat/play?path=${encodeURIComponent(audioPath)}` : undefined)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   return (
