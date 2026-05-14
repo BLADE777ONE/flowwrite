@@ -69,6 +69,7 @@
       "target": [
         { "target": "nsis", "arch": ["x64"] }
       ],
+      "icon": "build/icon.ico",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
