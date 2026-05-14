@@ -1054,8 +1054,13 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
         bpmAtual: bpm,
       })
       setResult(String(response || 'Não veio resposta da IA agora.'))
-    } catch {
-      setResult('Sinal do estúdio caiu. Verifique sua conexão.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || '')
+      if (message.includes('Canal IPC não autorizado') || message.includes('No handler registered')) {
+        setResult('O módulo de IA foi atualizado, mas o app precisa ser reiniciado para carregar o canal novo.')
+      } else {
+        setResult('Sinal do estúdio caiu. Verifique sua conexão.')
+      }
     } finally {
       setLoading(false)
     }

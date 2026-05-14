@@ -1,6 +1,10 @@
 const GEMINI_ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 const STUDIO_SIGNAL_ERROR = 'Sinal do estúdio caiu. Verifique sua conexão.'
+const AI_TIMEOUT_ERROR = 'A IA demorou para responder. Tente de novo em alguns segundos.'
+const AI_AUTH_ERROR = 'A chave da IA não foi aceita. Confira se a AI_API_KEY está correta e ativa no Google AI Studio.'
+const AI_QUOTA_ERROR = 'A IA bateu limite de uso agora. Aguarde um pouco ou confira a cota da chave.'
+const AI_REQUEST_ERROR = 'A IA recusou o pedido. Confira o modelo configurado em AI_MODEL ou tente novamente.'
 
 const SYSTEM_PROMPT = `Você é o Assistente Lírico e Rítmico do "O BLOCO", um software premium para MCs de Rap, Trap e Plug. Sua função é analisar versos, identificar falhas de métrica e sugerir melhorias baseadas nas seguintes regras de engenharia de flow:
 
@@ -56,6 +60,16 @@ function cleanResponse(text: string): string {
     .trim()
 }
 
+async function buildErrorMessage(response: Response): Promise<string> {
+  const body = await response.text().catch(() => '')
+  console.error('[AI Flow] Gemini HTTP error:', response.status, body)
+
+  if (response.status === 401 || response.status === 403) return AI_AUTH_ERROR
+  if (response.status === 429) return AI_QUOTA_ERROR
+  if (response.status === 400 || response.status === 404) return AI_REQUEST_ERROR
+  return STUDIO_SIGNAL_ERROR
+}
+
 export async function analisarMétricaFlow(letraUsuario: string, bpmAtual: number): Promise<string> {
   const apiKey = process.env.AI_API_KEY
   const lyric = String(letraUsuario || '').trim()
@@ -95,8 +109,7 @@ export async function analisarMétricaFlow(letraUsuario: string, bpmAtual: numbe
     })
 
     if (!response.ok) {
-      console.error('[AI Flow] Gemini HTTP error:', response.status, await response.text().catch(() => ''))
-      return STUDIO_SIGNAL_ERROR
+      return buildErrorMessage(response)
     }
 
     const data = await response.json()
@@ -104,6 +117,7 @@ export async function analisarMétricaFlow(letraUsuario: string, bpmAtual: numbe
     return text || 'Não consegui ler o flow agora. Tenta mandar o trecho de novo.'
   } catch (error) {
     console.error('[AI Flow] Falha na análise:', error)
+    if (error instanceof Error && error.name === 'AbortError') return AI_TIMEOUT_ERROR
     return STUDIO_SIGNAL_ERROR
   } finally {
     clearTimeout(timeoutId)
