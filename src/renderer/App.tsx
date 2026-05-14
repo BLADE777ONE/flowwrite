@@ -136,7 +136,7 @@ export default function App() {
         setDictResult(result)
       } catch (err) {
         console.error('[App] getDictionaryData falhou:', err)
-        setDictResult({ girias: [], sinonimos: [], relacionados: [], antonimos: [] })
+        setDictResult({ girias: [], sinonimos: [], relacionados: [], antonimos: [], themes: [] })
       } finally {
         setDictLoading(false)
       }

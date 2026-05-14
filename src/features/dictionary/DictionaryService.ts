@@ -6,6 +6,16 @@ export interface DictionaryResult {
   sinonimos: string[]
   relacionados: string[]
   antonimos: string[]
+  themes: DictionaryTheme[]
+}
+
+export interface DictionaryTheme {
+  id: string
+  label: string
+  score: number
+  keys: string[]
+  girias: string[]
+  relacionados: string[]
 }
 
 interface UrbanLookupEntry {
@@ -66,6 +76,17 @@ function scoreCategoryMatch(rawWord: string, category: UrbanCategory): number {
   return score
 }
 
+function buildTheme(category: UrbanCategory, score: number): DictionaryTheme {
+  return {
+    id: category.id,
+    label: category.label,
+    score,
+    keys: uniq(category.keys).slice(0, 8),
+    girias: uniq(category.girias).slice(0, 10),
+    relacionados: uniq(category.sinonimos).slice(0, 10),
+  }
+}
+
 function getUrbanEntry(rawWord: string): DictionaryResult {
   const lookup = urbanDatabase.lookup as Record<string, UrbanLookupEntry>
   const categories = urbanDatabase.categories as UrbanCategory[]
@@ -81,17 +102,17 @@ function getUrbanEntry(rawWord: string): DictionaryResult {
       .filter(item => item.score >= 0.6)
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
-      .map(item => item.category)
 
     return {
-      girias: uniq(fallbackCategories.flatMap(category => category.girias))
+      girias: uniq(fallbackCategories.flatMap(item => item.category.girias))
         .filter(item => normalize(item) !== norm)
         .slice(0, 32),
       sinonimos: [],
-      relacionados: uniq(fallbackCategories.flatMap(category => category.sinonimos))
+      relacionados: uniq(fallbackCategories.flatMap(item => item.category.sinonimos))
         .filter(item => normalize(item) !== norm)
         .slice(0, 32),
       antonimos: [],
+      themes: fallbackCategories.map(item => buildTheme(item.category, item.score)),
     }
   }
 
@@ -109,7 +130,12 @@ function getUrbanEntry(rawWord: string): DictionaryResult {
     ...categoryData.flatMap(category => category.sinonimos),
   ]).filter(item => normalize(item) !== norm).slice(0, 48)
 
-  return { girias, sinonimos: [], relacionados, antonimos: [] }
+  const themes = categoryData
+    .map(category => buildTheme(category, Math.max(0.82, scoreCategoryMatch(rawWord, category))))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+
+  return { girias, sinonimos: [], relacionados, antonimos: [], themes }
 }
 
 // ─── Wiktionary PT-BR: parser simples e tolerante ────────────────────────────
@@ -230,7 +256,7 @@ async function fetchWiktionary(rawWord: string): Promise<{ sinonimos: string[]; 
 
 export async function getDictionaryData(rawWord: string): Promise<DictionaryResult> {
   if (!rawWord || rawWord.trim().length < 2) {
-    return { girias: [], sinonimos: [], relacionados: [], antonimos: [] }
+    return { girias: [], sinonimos: [], relacionados: [], antonimos: [], themes: [] }
   }
 
   const local = getUrbanEntry(rawWord)
@@ -255,6 +281,7 @@ export async function getDictionaryData(rawWord: string): Promise<DictionaryResu
     sinonimos,
     relacionados,
     antonimos: uniq(online.antonimos).slice(0, 32),
+    themes: local.themes,
   }
 
   console.log('[DictionaryService] Resultado final:', result)

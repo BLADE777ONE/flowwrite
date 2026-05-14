@@ -26,9 +26,36 @@ export interface RhymeSuggestion {
   reason: string
 }
 
+export interface RhymeFamily {
+  id: string
+  ending: string
+  count: number
+  strength: number
+  dominantLane: RhymeSuggestion['lane']
+  examples: string[]
+  laneCounts: Record<RhymeSuggestion['lane'], number>
+}
+
+export interface RhymeMove {
+  id: string
+  title: string
+  body: string
+  word: string
+  lane: RhymeSuggestion['lane']
+  reason: string
+}
+
 const WORD_BANK: readonly string[] = WORD_BANK_JSON
 const PHRASE_BANK: readonly string[] = PHRASE_BANK_JSON
 const WORD_INDEX: Record<string, readonly string[]> = WORD_INDEX_JSON as Record<string, readonly string[]>
+
+const LANE_PRIORITY: Record<RhymeSuggestion['lane'], number> = {
+  forte: 5,
+  criativa: 4,
+  frase: 3,
+  inclinada: 2,
+  simples: 1,
+}
 
 interface RhymeStanza {
   startLine: number
@@ -430,21 +457,123 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
     }
   }
 
-  const lanePriority: Record<RhymeSuggestion['lane'], number> = {
-    forte: 5,
-    criativa: 4,
-    frase: 3,
-    inclinada: 2,
-    simples: 1,
-  }
-
   return results
     .sort((a, b) => {
-      const laneDiff = lanePriority[b.lane] - lanePriority[a.lane]
+      const laneDiff = LANE_PRIORITY[b.lane] - LANE_PRIORITY[a.lane]
       if (laneDiff !== 0) return laneDiff
       return b.score - a.score
     })
     .slice(0, limit)
+}
+
+function emptyLaneCounts(): Record<RhymeSuggestion['lane'], number> {
+  return { forte: 0, criativa: 0, inclinada: 0, frase: 0, simples: 0 }
+}
+
+export function buildRhymeFamilies(suggestions: RhymeSuggestion[], limit = 5): RhymeFamily[] {
+  const families = new Map<string, RhymeFamily>()
+
+  for (const suggestion of suggestions) {
+    const ending = suggestion.ending || extractRhymeNucleus(suggestion.word)
+    const id = ending || suggestion.phoneticKey || normalize(suggestion.word)
+    const current = families.get(id)
+
+    if (!current) {
+      const laneCounts = emptyLaneCounts()
+      laneCounts[suggestion.lane] = 1
+      families.set(id, {
+        id,
+        ending,
+        count: 1,
+        strength: suggestion.score * LANE_PRIORITY[suggestion.lane],
+        dominantLane: suggestion.lane,
+        examples: [suggestion.word],
+        laneCounts,
+      })
+      continue
+    }
+
+    current.count += 1
+    current.strength += suggestion.score * LANE_PRIORITY[suggestion.lane]
+    current.laneCounts[suggestion.lane] += 1
+    if (!current.examples.includes(suggestion.word) && current.examples.length < 5) {
+      current.examples.push(suggestion.word)
+    }
+
+    const currentDominantCount = current.laneCounts[current.dominantLane]
+    const newLaneCount = current.laneCounts[suggestion.lane]
+    if (
+      newLaneCount > currentDominantCount ||
+      (newLaneCount === currentDominantCount && LANE_PRIORITY[suggestion.lane] > LANE_PRIORITY[current.dominantLane])
+    ) {
+      current.dominantLane = suggestion.lane
+    }
+  }
+
+  return [...families.values()]
+    .sort((a, b) => {
+      const strengthDiff = b.strength - a.strength
+      if (strengthDiff !== 0) return strengthDiff
+      return b.count - a.count
+    })
+    .slice(0, limit)
+}
+
+export function buildRhymeMoves(input: string, suggestions: RhymeSuggestion[], limit = 4): RhymeMove[] {
+  if (!input || suggestions.length === 0) return []
+
+  const moves: RhymeMove[] = []
+  const pick = (lane: RhymeSuggestion['lane']) => suggestions.find(item => item.lane === lane)
+  const strong = pick('forte')
+  const creative = pick('criativa')
+  const inclined = pick('inclinada')
+  const phrase = pick('frase')
+
+  if (strong) {
+    moves.push({
+      id: `close-${strong.word}`,
+      title: 'Fechamento limpo',
+      body: `Use "${strong.word}" quando quiser resolver a barra sem perder impacto.`,
+      word: strong.word,
+      lane: strong.lane,
+      reason: strong.reason,
+    })
+  }
+
+  if (creative) {
+    moves.push({
+      id: `punch-${creative.word}`,
+      title: 'Punch mais autoral',
+      body: `Puxe "${creative.word}" para sair da rima previsivel e ganhar cor.`,
+      word: creative.word,
+      lane: creative.lane,
+      reason: creative.reason,
+    })
+  }
+
+  if (inclined) {
+    moves.push({
+      id: `pocket-${inclined.word}`,
+      title: 'Trap pocket',
+      body: `Teste "${inclined.word}" como rima inclinada; funciona bem fora do tempo quadrado.`,
+      word: inclined.word,
+      lane: inclined.lane,
+      reason: inclined.reason,
+    })
+  }
+
+  if (phrase) {
+    moves.push({
+      id: `phrase-${phrase.word}`,
+      title: 'Frase de queda',
+      body: `"${phrase.word}" ja vem com gesto de fechamento para fim de linha.`,
+      word: phrase.word,
+      lane: phrase.lane,
+      reason: phrase.reason,
+    })
+  }
+
+  return moves.slice(0, limit)
 }
 
 // Compatibilidade retroativa com App.tsx
