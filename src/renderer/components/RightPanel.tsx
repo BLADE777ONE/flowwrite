@@ -12,7 +12,7 @@ import { analyzeMetrics, scoreBreathLoad, scoreBlockConsistency, generateLineAle
 import { useEditorStore } from '../../features/editor/editorStore'
 import { getRhymeStrength, getPredictableEndingLabel, type RhymeStrength } from '../../features/rhyme/rhymeScoring'
 import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
-import type { FlowSpeed, LineMetrics } from '../../shared/types/Metrics'
+import type { FlowSpeed, LineMetrics, MetricsAnalysisMode } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
 import type { ActiveToolTab } from '../types'
 import type { RhymeAnalysis, RhymeSchemeBlock } from '../../shared/types/Rhyme'
@@ -103,12 +103,15 @@ function flowSpeedLabel(speed: FlowSpeed): string {
 }
 
 function lineFit(line: LineMetrics, average: number) {
-  const diff = line.syllableCount - average
+  const vocal = line.vocalSyllableEstimate ?? line.syllableCount
+  const diff = vocal - average
 
-  if (line.syllableCount >= 20 || diff >= 6) {
+  if (line.fitConfidence === 'depende' || vocal >= 20 || diff >= 6) {
     return {
-      label: 'travada',
-      hint: 'Pode precisar de pausa, corte ou double time.',
+      label: line.fitConfidence === 'depende' ? 'depende' : 'travada',
+      hint: line.fitConfidence === 'depende'
+        ? 'Pode encaixar com melodia, elisão ou pausa marcada.'
+        : 'Pode precisar de pausa, corte ou double time.',
       className: 'bg-red-900/40 text-red-300 border-red-800',
       barClassName: 'bg-red-500',
     }
@@ -208,6 +211,13 @@ function MetricProgressRow({ label, value, tone }: { label: string; value: numbe
   )
 }
 
+const METRIC_MODE_OPTIONS: Array<{ id: MetricsAnalysisMode; label: string; hint: string }> = [
+  { id: 'rap', label: 'Rap', hint: 'Boom bap e rap reto' },
+  { id: 'trap', label: 'Trap', hint: 'Bounce, triplet e hi-hat rápido' },
+  { id: 'melodic', label: 'Melódico', hint: 'R&B, rap romântico e voz cantada' },
+  { id: 'free', label: 'Livre', hint: 'Trecho sem compasso rígido' },
+]
+
 function FlowMeterDial({
   score,
   speed,
@@ -284,7 +294,9 @@ function FlowMeterDial({
 
 function MetricsTab({ lines }: { lines: string[] }) {
   const { bpm } = useEditorStore()
-  const analysis = analyzeMetrics(lines.join('\n'), bpm)
+  const [mode, setMode] = useState<MetricsAnalysisMode>('rap')
+  const analysis = analyzeMetrics(lines.join('\n'), bpm, mode)
+  const profileHint = METRIC_MODE_OPTIONS.find(option => option.id === mode)?.hint ?? ''
 
   if (analysis.lines.length === 0) {
     return (
@@ -302,7 +314,7 @@ function MetricsTab({ lines }: { lines: string[] }) {
   const fitScore = scoreLineFit(analysis.lines, average)
   const metricScore = clampPercent(analysis.regularityScore)
   const rhythmScore = scoreRhythm(analysis.lines, analysis.regularityScore)
-  const breathScore = scoreBreathLoad(analysis.lines, bpm)
+  const breathScore = scoreBreathLoad(analysis.lines, bpm, mode)
   const blockScore = scoreBlockConsistency(analysis.lines)
   const flowScore = clampPercent(
     metricScore * 0.35 + fitScore * 0.22 + speedScore * 0.18 +
@@ -319,6 +331,35 @@ function MetricsTab({ lines }: { lines: string[] }) {
         <span className="text-[10px] text-purple-300 border border-purple-800/50 bg-purple-950/30 px-2 py-1 rounded-full">
           {flowSpeedLabel(analysis.flowSpeed)}
         </span>
+      </div>
+
+      <div className="mb-4 rounded-md border border-white/[0.07] bg-white/[0.03] p-2.5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-black">Modo de análise</p>
+          <span className="text-[10px] text-cyan-300 font-mono">
+            {analysis.idealRange ? `${analysis.idealRange.min}-${analysis.idealRange.max} síl.` : '--'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {METRIC_MODE_OPTIONS.map(option => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setMode(option.id)}
+              title={option.hint}
+              className={`rounded-md border px-2 py-1.5 text-[10px] font-black uppercase tracking-wider transition ${
+                mode === option.id
+                  ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-100'
+                  : 'border-white/[0.07] bg-black/20 text-gray-500 hover:border-purple-500/45 hover:text-gray-200'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] leading-snug text-gray-600">
+          {analysis.modeLabel}: {profileHint}. A leitura considera sílabas escritas e possível entrega vocal.
+        </p>
       </div>
 
       <div className="mb-4">
@@ -364,7 +405,8 @@ function MetricsTab({ lines }: { lines: string[] }) {
           const width = Math.max(8, Math.min(100, (line.syllableCount / Math.max(average + 8, 16)) * 100))
           const blockNumber = Math.floor(index / 4) + 1
           const positionInBlock = (index % 4) + 1
-          const alerts = generateLineAlerts(line, average, bpm)
+          const alerts = generateLineAlerts(line, average, bpm, mode)
+          const vocalEstimate = line.vocalSyllableEstimate ?? line.syllableCount
 
           return (
             <div key={index} className="bg-[#19191f] border border-[#2b2b36] p-3 rounded-md hover:border-purple-800/50 transition">
@@ -390,6 +432,8 @@ function MetricsTab({ lines }: { lines: string[] }) {
 
               <div className="flex flex-wrap gap-1.5 mt-2">
                 <span className="text-[10px] text-gray-500">{flowSpeedLabel(line.flowSpeed)}</span>
+                {vocalEstimate !== line.syllableCount && <span className="text-[10px] text-cyan-400">~{vocalEstimate} síl. cantadas</span>}
+                {line.fitConfidence && <span className="text-[10px] text-purple-400">encaixe {line.fitConfidence}</span>}
                 {line.breathPoints.length > 0 && <span className="text-[10px] text-cyan-400">pausa sugerida</span>}
                 {line.elisions.length > 0 && <span className="text-[10px] text-purple-400">{line.elisions.length} elisão</span>}
               </div>
@@ -400,6 +444,14 @@ function MetricsTab({ lines }: { lines: string[] }) {
                     <span key={ai} className="text-[10px] px-1.5 py-0.5 rounded border bg-orange-950/30 text-orange-300 border-orange-800/40 font-bold">
                       {alert}
                     </span>
+                  ))}
+                </div>
+              )}
+
+              {line.performanceNotes && line.performanceNotes.length > 0 && (
+                <div className="mt-1.5 space-y-1">
+                  {line.performanceNotes.map((note, ni) => (
+                    <p key={ni} className="text-[10px] text-cyan-300/80">{note}</p>
                   ))}
                 </div>
               )}

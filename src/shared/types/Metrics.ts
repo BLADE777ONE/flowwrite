@@ -1,10 +1,11 @@
 // src/shared/types/Metrics.ts
 
 export type FlowSpeed = 'slow' | 'medium' | 'fast' | 'very_fast'
+export type MetricsAnalysisMode = 'rap' | 'trap' | 'melodic' | 'free'
 
 export interface StressWord {
   word: string
-  position: number  // índice no verso
+  position: number
   stress: 'strong' | 'medium' | 'weak'
 }
 
@@ -12,19 +13,25 @@ export interface LineMetrics {
   lineIndex: number
   text: string
   syllableCount: number
+  vocalSyllableEstimate?: number
+  fitConfidence?: 'alta' | 'provavel' | 'depende'
   estimatedStressWords: StressWord[]
-  breathPoints: number[]     // índices das palavras onde respirar
-  isTooLong: boolean         // > 20 sílabas
-  isTooShort: boolean        // < 6 sílabas
+  breathPoints: number[]
+  isTooLong: boolean
+  isTooShort: boolean
   flowSpeed: FlowSpeed
   suggestions: string[]
-  elisions: string[]         // descrição das elisões aplicadas
+  elisions: string[]
+  performanceNotes?: string[]
 }
 
 export interface MetricsAnalysis {
+  mode: MetricsAnalysisMode
+  modeLabel?: string
+  idealRange?: { min: number; max: number }
   lines: LineMetrics[]
   averageSyllables: number
-  regularityScore: number    // 0-100 — variação entre linhas
+  regularityScore: number
   flowSpeed: FlowSpeed
   totalLines: number
   totalWords: number
@@ -51,12 +58,12 @@ export interface ArtistDNA {
   totalSongs: number
   totalWords: number
   uniqueWords: number
-  vocabularyEntropy: number        // 0-1 (Shannon simplificado)
+  vocabularyEntropy: number
   frequentWords: FrequentWord[]
-  saturatedWords: string[]         // palavras com uso excessivo
+  saturatedWords: string[]
   recurringThemes: SemanticTheme[]
   dominantVibe: string | null
-  averageLineLength: number        // palavras
+  averageLineLength: number
   averageSyllablesPerLine: number
   rhymeDensity: number
   internalRhymeRate: number
@@ -81,19 +88,19 @@ export interface ClicheMatch {
 export interface ClicheAnalysis {
   matches: ClicheMatch[]
   totalCliches: number
-  clicheDensity: number   // proporção de linhas com clichê
-  score: number           // 0-100 (100 = sem clichês)
+  clicheDensity: number
+  score: number
 }
 
 // src/shared/types/Quality.ts
 export interface QualityAnalysis {
-  rhymeScore: number       // 0-100
-  metricsScore: number     // 0-100
-  originalityScore: number // 0-100
-  vocabularyScore: number  // 0-100
-  flowScore: number        // 0-100
-  clichePenalty: number    // 0-100 (penalidade)
-  overallScore: number     // média ponderada
+  rhymeScore: number
+  metricsScore: number
+  originalityScore: number
+  vocabularyScore: number
+  flowScore: number
+  clichePenalty: number
+  overallScore: number
   grade: 'S' | 'A' | 'B' | 'C' | 'D' | 'F'
   recommendations: string[]
 }

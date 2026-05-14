@@ -96,10 +96,15 @@ export function CoreEditor() {
       // Override metricsAnalysis with Python's more accurate syllable data
       const pyLines = result.syllables.lines
       const metricsFromPython: MetricsAnalysis = {
+        mode: 'rap',
+        modeLabel: 'Rap reto',
+        idealRange: { min: 10, max: 14 },
         lines: pyLines.map((l, i) => ({
           lineIndex: i,
           text: l.text,
           syllableCount: l.syllables,
+          vocalSyllableEstimate: l.syllables,
+          fitConfidence: l.isTooLong || l.isTooShort ? 'depende' : 'alta',
           estimatedStressWords: l.stressWords,
           breathPoints: l.breathPoints,
           isTooLong: l.isTooLong,
@@ -107,6 +112,7 @@ export function CoreEditor() {
           flowSpeed: result.syllables.flowSpeed as FlowSpeed,
           suggestions: [],
           elisions: [],
+          performanceNotes: [],
         })),
         averageSyllables: result.syllables.average,
         regularityScore: result.syllables.regularity,
