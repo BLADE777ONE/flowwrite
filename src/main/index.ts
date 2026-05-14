@@ -1,7 +1,7 @@
 // src/main/index.ts
 // Electron Main Process — OBloco
 
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import path from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import http from 'http'
@@ -102,6 +102,40 @@ function stopPythonServer(): void {
   }
 }
 
+// ─── Schema init (roda em todo startup, CREATE TABLE IF NOT EXISTS é seguro) ──
+
+async function initSchema(db: { $executeRawUnsafe: (sql: string) => Promise<unknown> }) {
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS "Project" ("id" TEXT NOT NULL PRIMARY KEY, "title" TEXT NOT NULL, "bpm" INTEGER, "vibe" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS "Song" ("id" TEXT NOT NULL PRIMARY KEY, "projectId" TEXT NOT NULL, "title" TEXT NOT NULL, "content" TEXT NOT NULL DEFAULT '', "metadataJson" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL, CONSTRAINT "Song_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS "Section" ("id" TEXT NOT NULL PRIMARY KEY, "songId" TEXT NOT NULL, "type" TEXT NOT NULL, "order" INTEGER NOT NULL, "content" TEXT NOT NULL DEFAULT '', "startBar" INTEGER, "endBar" INTEGER, "label" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL, CONSTRAINT "Section_songId_fkey" FOREIGN KEY ("songId") REFERENCES "Song" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS "SongVersion" ("id" TEXT NOT NULL PRIMARY KEY, "songId" TEXT NOT NULL, "content" TEXT NOT NULL, "versionName" TEXT NOT NULL, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "SongVersion_songId_fkey" FOREIGN KEY ("songId") REFERENCES "Song" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS "ProjectTag" ("id" TEXT NOT NULL PRIMARY KEY, "projectId" TEXT NOT NULL, "tag" TEXT NOT NULL, CONSTRAINT "ProjectTag_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS "RhymeDictionary" ("id" TEXT NOT NULL PRIMARY KEY, "term" TEXT NOT NULL, "suggestionsJson" TEXT NOT NULL, "phoneticKey" TEXT NOT NULL, "category" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS "StyleMetrics" ("id" TEXT NOT NULL PRIMARY KEY, "totalSongs" INTEGER NOT NULL DEFAULT 0, "totalWords" INTEGER NOT NULL DEFAULT 0, "frequentWordsJson" TEXT NOT NULL DEFAULT '[]', "recurringThemesJson" TEXT NOT NULL DEFAULT '[]', "averageLineLength" REAL NOT NULL DEFAULT 0, "averageSyllablesPerLine" REAL NOT NULL DEFAULT 0, "vocabularyEntropy" REAL NOT NULL DEFAULT 0, "dominantVibe" TEXT, "rhymeDensity" REAL NOT NULL DEFAULT 0, "internalRhymeRate" REAL NOT NULL DEFAULT 0, "multisyllableRate" REAL NOT NULL DEFAULT 0, "adlibUsageRate" REAL NOT NULL DEFAULT 0, "updatedAt" DATETIME NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS "WordFrequency" ("id" TEXT NOT NULL PRIMARY KEY, "word" TEXT NOT NULL, "count" INTEGER NOT NULL DEFAULT 1, "lastUsedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS "AnalysisCache" ("id" TEXT NOT NULL PRIMARY KEY, "songId" TEXT NOT NULL, "rhymeAnalysisJson" TEXT NOT NULL DEFAULT '{}', "metricsAnalysisJson" TEXT NOT NULL DEFAULT '{}', "clicheAnalysisJson" TEXT NOT NULL DEFAULT '{}', "qualityAnalysisJson" TEXT NOT NULL DEFAULT '{}', "updatedAt" DATETIME NOT NULL, CONSTRAINT "AnalysisCache_songId_fkey" FOREIGN KEY ("songId") REFERENCES "Song" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS "UserWord" ("id" TEXT NOT NULL PRIMARY KEY, "word" TEXT NOT NULL, "category" TEXT NOT NULL, "note" TEXT, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS "AppSettings" ("id" TEXT NOT NULL PRIMARY KEY, "key" TEXT NOT NULL, "value" TEXT NOT NULL)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "RhymeDictionary_term_key" ON "RhymeDictionary"("term")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "WordFrequency_word_key" ON "WordFrequency"("word")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "AnalysisCache_songId_key" ON "AnalysisCache"("songId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "AppSettings_key_key" ON "AppSettings"("key")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "UserWord_word_category_key" ON "UserWord"("word", "category")`,
+  ]
+
+  for (const sql of statements) {
+    try {
+      await db.$executeRawUnsafe(sql)
+    } catch (err: any) {
+      if (!String(err?.message ?? '').includes('already exists')) {
+        console.error('[DB] initSchema erro:', err?.message ?? err)
+      }
+    }
+  }
+  console.log('[DB] Schema inicializado.')
+}
+
 // ─── Janela principal ─────────────────────────────────────────────────────────
 
 function createWindow() {
@@ -149,6 +183,7 @@ app.whenReady().then(async () => {
   // Banco de dados
   const db = getDB()
   await db.$connect()
+  await initSchema(db)
 
   // Iniciar servidor Python (não bloquear a UI)
   startPythonServer()

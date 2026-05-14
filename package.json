@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && node ./scripts/start-electron.cjs\"",
-    "electron:build": "vite build && electron-builder",
+    "electron:build": "prisma generate && vite build && electron-builder",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -48,14 +48,39 @@
     "schema": "src/database/prisma/schema.prisma"
   },
   "build": {
-    "appId": "com.obloco.app",
+    "appId": "com.obloco.rhymestudio",
     "productName": "OBloco",
-    "win": {
-      "target": "nsis"
+    "copyright": "Copyright © 2026 OBloco",
+    "directories": {
+      "output": "release"
     },
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/client/**/*"
+    ],
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
-    ]
+      "dist-electron/**/*",
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/client/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OBloco",
+      "deleteAppDataOnUninstall": false,
+      "language": "1046"
+    }
   }
 }
