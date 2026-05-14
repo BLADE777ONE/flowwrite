@@ -1,9 +1,18 @@
-import { dialog, ipcMain, net, protocol } from 'electron'
+import { dialog, ipcMain, protocol } from 'electron'
+import { createReadStream, existsSync, statSync } from 'fs'
 import path from 'path'
-import { pathToFileURL } from 'url'
+import { Readable } from 'stream'
 
 const AUDIO_SCHEME = 'obloco-audio'
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac'])
+const AUDIO_MIME: Record<string, string> = {
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.flac': 'audio/flac',
+  '.aac': 'audio/aac',
+}
 
 export function registerAudioProtocolPrivileges() {
   protocol.registerSchemesAsPrivileged([
@@ -38,7 +47,41 @@ export function registerAudioProtocol() {
       return new Response('Unsupported audio type', { status: 415 })
     }
 
-    return net.fetch(pathToFileURL(filePath).toString())
+    if (!existsSync(filePath)) {
+      return new Response('Audio file not found', { status: 404 })
+    }
+
+    const fileSize = statSync(filePath).size
+    const range = request.headers.get('range')
+    const mimeType = AUDIO_MIME[extension] ?? 'application/octet-stream'
+
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range)
+      const requestedStart = match?.[1] ? Number(match[1]) : 0
+      const requestedEnd = match?.[2] ? Number(match[2]) : fileSize - 1
+      const start = Math.max(0, Math.min(requestedStart, fileSize - 1))
+      const end = Math.max(start, Math.min(requestedEnd, fileSize - 1))
+      const chunkSize = end - start + 1
+
+      return new Response(Readable.toWeb(createReadStream(filePath, { start, end })) as ReadableStream, {
+        status: 206,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Type': mimeType,
+          'Content-Length': String(chunkSize),
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        },
+      })
+    }
+
+    return new Response(Readable.toWeb(createReadStream(filePath)) as ReadableStream, {
+      status: 200,
+      headers: {
+        'Accept-Ranges': 'bytes',
+        'Content-Type': mimeType,
+        'Content-Length': String(fileSize),
+      },
+    })
   })
 }
 

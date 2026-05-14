@@ -298,8 +298,10 @@ export function Sidebar({
 
           {audioName ? (
             <audio
+              key={audioSrc}
               className="mt-2 h-8 w-full"
               controls
+              preload="metadata"
               src={audioSrc}
             />
           ) : (
