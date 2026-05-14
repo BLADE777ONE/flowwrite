@@ -14,6 +14,7 @@ import { EditorTopBar } from './components/EditorTopBar'
 import { LyricsEditor } from './components/LyricsEditor'
 import { EditorStatusBar } from './components/EditorStatusBar'
 import { RightPanel } from './components/RightPanel'
+import { OnboardingOverlay } from './components/OnboardingOverlay'
 import type { ActiveToolTab, Project, Song, TimelineSegment } from './types'
 import {
   extractWordFromSelection,
@@ -71,6 +72,7 @@ export default function App() {
   const [dictResult, setDictResult] = useState<DictionaryResult | null>(null)
   const [dictLoading, setDictLoading] = useState(false)
   const [activeBarIndex, setActiveBarIndex] = useState(0)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const { bpm, metronomePlaying } = useEditorStore()
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -154,6 +156,18 @@ export default function App() {
       setProjects(list)
       if (list.length > 0) loadProject(list[0])
     })
+  }, [])
+
+  useEffect(() => {
+    if (!window.flowAPI) return
+
+    window.flowAPI.invoke('settings:get', 'onboarding_completed')
+      .then(value => {
+        if (value !== 'true') setShowOnboarding(true)
+      })
+      .catch(error => {
+        console.error('[App] Falha ao carregar onboarding:', error)
+      })
   }, [])
 
   useEffect(() => {
@@ -271,6 +285,27 @@ export default function App() {
     await loadProject(newProject)
   }
 
+  async function completeOnboarding() {
+    setShowOnboarding(false)
+    if (!window.flowAPI) return
+    try {
+      await window.flowAPI.invoke('settings:set', 'onboarding_completed', 'true')
+    } catch (error) {
+      console.error('[App] Falha ao salvar onboarding:', error)
+    }
+  }
+
+  async function handleOnboardingCreateProject() {
+    if (projects.length === 0) {
+      await handleNewProject()
+      return
+    }
+
+    if (currentProject) {
+      await handleNewLyric()
+    }
+  }
+
   async function handleRenameProject(id: string, title: string) {
     if (!window.flowAPI) return
     await window.flowAPI.invoke('project:update', id, { title })
@@ -350,6 +385,17 @@ export default function App() {
         onInsertWord={insertDictionaryWord}
         onInsertLine={insertSuggestedLine}
       />
+
+      {showOnboarding && (
+        <OnboardingOverlay
+          hasProjects={projects.length > 0}
+          hasCurrentProject={Boolean(currentProject)}
+          onComplete={completeOnboarding}
+          onSkip={completeOnboarding}
+          onCreateFirstProject={handleOnboardingCreateProject}
+          onFocusToolTab={setActiveTab}
+        />
+      )}
     </div>
   )
 }

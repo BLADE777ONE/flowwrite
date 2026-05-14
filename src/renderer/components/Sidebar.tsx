@@ -117,7 +117,10 @@ export function Sidebar({
   const { bpm } = useEditorStore()
 
   return (
-    <aside className="w-60 bg-[#08080c] border-r border-white/[0.07] flex flex-col shadow-[12px_0_36px_rgba(0,0,0,0.22)]">
+    <aside
+      data-onboarding="sidebar"
+      className="w-60 bg-[#08080c] border-r border-white/[0.07] flex flex-col shadow-[12px_0_36px_rgba(0,0,0,0.22)]"
+    >
 
       {/* Logo */}
       <div className="px-3.5 pt-3.5 pb-3 border-b border-white/[0.06]">

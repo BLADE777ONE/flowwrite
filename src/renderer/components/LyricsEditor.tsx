@@ -57,7 +57,7 @@ function EditorStudioStrip({
 
 export function LyricsEditor({ editor, lyrics, scopedLines, activeBlockStart }: LyricsEditorProps) {
   return (
-    <main className="flex-1 min-h-0 bg-[#09090d] relative overflow-hidden">
+    <main data-onboarding="lyrics-editor" className="flex-1 min-h-0 bg-[#09090d] relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_-30%,rgba(124,58,237,0.16),transparent_60%)] pointer-events-none" />
       <div className="absolute left-0 top-0 bottom-0 w-px bg-cyan-400/20 shadow-[0_0_24px_rgba(34,211,238,0.28)] pointer-events-none" />
 

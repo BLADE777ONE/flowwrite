@@ -1331,7 +1331,10 @@ export function RightPanel({
   const activeBarNumber = activeBarIndex + 1
 
   return (
-    <aside className="w-[21rem] min-w-[19.5rem] bg-[#08080c] border-l border-white/[0.07] flex flex-col relative shadow-[-12px_0_36px_rgba(0,0,0,0.2)]">
+    <aside
+      data-onboarding="right-panel"
+      className="w-[21rem] min-w-[19.5rem] bg-[#08080c] border-l border-white/[0.07] flex flex-col relative shadow-[-12px_0_36px_rgba(0,0,0,0.2)]"
+    >
       <div className="h-16 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0c0c11] app-region-drag">
         <div>
           <span className="text-xs text-gray-500 font-bold tracking-wider">FERRAMENTAS LÍRICAS</span>

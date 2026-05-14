@@ -250,6 +250,7 @@ export function RhythmicScorePanel({
 
   return (
     <aside
+      data-onboarding="rhythm-panel"
       className={`rhythm-panel ${collapsed ? 'is-collapsed' : ''} ${playing ? 'is-playing' : ''} is-${mode}`}
       style={{ '--rhythm-bar-ms': `${(60000 / Math.max(bpm, 1)) * 4}ms` } as CSSProperties}
     >
