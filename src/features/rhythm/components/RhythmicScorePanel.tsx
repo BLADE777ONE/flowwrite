@@ -92,11 +92,13 @@ function getLineDensity(syllableCount: number): { label: string; className: stri
 function SyllableNote({
   lineIndex,
   note,
+  slotsPerBar,
   collapsed,
   onMove,
 }: {
   lineIndex: number
   note: RhythmSyllable
+  slotsPerBar: number
   collapsed: boolean
   onMove: (lineIndex: number, note: RhythmSyllable, slot: number) => void
 }) {
@@ -107,8 +109,8 @@ function SyllableNote({
       type="button"
       className={`rhythm-note ${note.startsBeat ? 'strong' : ''}`}
       style={{
-        left: `calc(${(note.slot / 16) * 100}% + 2px)`,
-        width: `calc(${(note.durationSlots / 16) * 100}% - 4px)`,
+        left: `calc(${(note.slot / slotsPerBar) * 100}% + 2px)`,
+        width: `calc(${(note.durationSlots / slotsPerBar) * 100}% - 4px)`,
       }}
       title={`${note.word} - slot ${note.slot + 1} (${note.timeMs}ms)`}
       onPointerDown={(event) => {
@@ -182,6 +184,7 @@ function RhythmLine({
               key={note.id}
               lineIndex={sourceIndex}
               note={note}
+              slotsPerBar={map.slotsPerBar}
               collapsed={collapsed}
               onMove={onMove}
             />

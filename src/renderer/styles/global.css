@@ -374,8 +374,8 @@
     position: relative;
     width: 100%;
     min-width: 0;
-    height: 8.9rem;
-    min-height: 8.9rem;
+    height: 10.2rem;
+    min-height: 10.2rem;
     display: flex;
     flex-direction: column;
     background: #121212;
@@ -392,8 +392,8 @@
   }
 
   .rhythm-panel.is-detail {
-    height: 15.5rem;
-    min-height: 15.5rem;
+    height: 16.8rem;
+    min-height: 16.8rem;
   }
 
   .rhythm-panel.is-collapsed {
@@ -420,7 +420,7 @@
   }
 
   .rhythm-panel-header {
-    min-height: 3.05rem;
+    min-height: 3.15rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -456,13 +456,17 @@
   .rhythm-header-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.55rem;
+    min-width: 0;
+    flex-wrap: wrap;
   }
 
   .rhythm-pocket-toggle,
   .rhythm-view-toggle {
     display: flex;
     align-items: center;
+    flex: 0 1 auto;
     height: 2.1rem;
     padding: 0.16rem;
     border: 1px solid rgba(255,255,255,0.075);
@@ -473,7 +477,7 @@
   .rhythm-pocket-toggle button,
   .rhythm-view-toggle button {
     height: 1.65rem;
-    padding: 0 0.58rem;
+    padding: 0 0.52rem;
     border-radius: 0.3rem;
     color: rgba(255,255,255,0.42);
     font-size: 0.58rem;
@@ -491,7 +495,7 @@
   }
 
   .rhythm-pocket-toggle button {
-    max-width: 5.7rem;
+    max-width: 5.85rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -527,17 +531,20 @@
   }
 
   .rhythm-panel-stats {
-    position: absolute;
-    right: 11.1rem;
-    top: 0.68rem;
     display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 0.45rem;
-    padding: 0;
-    border-bottom: 0;
+    min-height: 2rem;
+    padding: 0.38rem 1rem 0.3rem;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+    background: rgba(0,0,0,0.12);
   }
 
   .rhythm-panel-stats span {
     min-width: 0;
+    max-width: 8.8rem;
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 0.4rem;
     background: rgba(255,255,255,0.025);
@@ -547,6 +554,9 @@
     font-weight: 700;
     text-align: center;
     padding: 0.38rem 0.55rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .rhythm-panel.is-playing .rhythm-panel-stats span:last-child {
