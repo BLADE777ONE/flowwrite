@@ -1045,6 +1045,7 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
   const [expanded, setExpanded] = useState(false)
   const [showFullResult, setShowFullResult] = useState(false)
   const hasText = text.trim().length >= 8
+  const aiEnabled = import.meta.env.VITE_AI_FLOW_ENABLED === 'true'
 
   async function handleAnalyzeFlow() {
     if (!hasText || !window.flowAPI) return
@@ -1085,13 +1086,17 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
       <button
         type="button"
         onClick={handleAnalyzeFlow}
-        disabled={!hasText || loading}
+        disabled={!aiEnabled || !hasText || loading}
         className="w-full rounded-md border border-cyan-700/50 bg-cyan-600/15 px-3 py-2 text-xs font-black uppercase tracking-wider text-cyan-100 transition hover:border-cyan-300/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {loading ? 'Analisando o pocket...' : 'Analisar com IA'}
+        {!aiEnabled ? 'IA preparada para ativação futura' : loading ? 'Analisando o pocket...' : 'Analisar com IA'}
       </button>
 
-      {!hasText && (
+      {!aiEnabled ? (
+        <p className="mt-2 text-[10px] leading-snug text-gray-500">
+          Recurso desabilitado por enquanto para evitar custos de API. O código já está pronto; ative com VITE_AI_FLOW_ENABLED=true e AI_API_KEY quando quiser usar.
+        </p>
+      ) : !hasText && (
         <p className="mt-2 text-[10px] text-gray-600">Escreva algumas barras no bloco atual para liberar a análise.</p>
       )}
 
