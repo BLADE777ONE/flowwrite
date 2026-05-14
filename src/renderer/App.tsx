@@ -57,6 +57,30 @@ function getActiveBarIndex(editor: Editor): number {
   return found ? activeIndex : Math.max(0, contentIndex - 1)
 }
 
+type SongMetadata = {
+  bpm?: number
+  audio?: {
+    path: string
+    name: string
+  } | null
+}
+
+function parseSongMetadata(song: Song | null): SongMetadata {
+  if (!song?.metadataJson) return {}
+  try {
+    return JSON.parse(song.metadataJson) as SongMetadata
+  } catch {
+    return {}
+  }
+}
+
+function buildSongMetadata(song: Song | null, patch: SongMetadata): string {
+  return JSON.stringify({
+    ...parseSongMetadata(song),
+    ...patch,
+  })
+}
+
 export default function App() {
   const [lyrics, setLyrics] = useState('')
   const [title, setTitle] = useState('')
@@ -73,7 +97,7 @@ export default function App() {
   const [dictLoading, setDictLoading] = useState(false)
   const [activeBarIndex, setActiveBarIndex] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const { bpm, metronomePlaying } = useEditorStore()
+  const { bpm, setBpm, metronomePlaying } = useEditorStore()
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLoadingRef = useRef(false)
@@ -176,20 +200,24 @@ export default function App() {
 
     saveTimerRef.current = setTimeout(async () => {
       setSaving(true)
-      await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title })
+      const metadataJson = buildSongMetadata(currentSong, { bpm })
+      await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title, metadataJson })
+      setCurrentSong(prev => prev ? { ...prev, title, metadataJson } : prev)
       setSaving(false)
     }, 1500)
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     }
-  }, [lyrics, title])
+  }, [lyrics, title, bpm])
 
   async function handleSave() {
     if (!currentSong || !window.flowAPI) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setSaving(true)
-    await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title })
+    const metadataJson = buildSongMetadata(currentSong, { bpm })
+    await window.flowAPI.invoke('lyric:update', currentSong.id, { content: editor?.getHTML() ?? textToHtml(lyrics), title, metadataJson })
+    setCurrentSong(prev => prev ? { ...prev, title, metadataJson } : prev)
     setSaving(false)
   }
 
@@ -229,6 +257,7 @@ export default function App() {
     setCurrentSong(song)
     setActiveBarIndex(0)
     setTitle(song.title ?? '')
+    setBpm(parseSongMetadata(song).bpm ?? 90)
 
     const content = song.content ?? ''
     setLyrics(storedContentToPlainText(content))
@@ -269,13 +298,17 @@ export default function App() {
       projectId: currentProject.id,
       title: 'Nova Letra',
     })) as Song
-    setSongs(prev => [newSong, ...prev])
+    const metadataJson = JSON.stringify({ bpm: 90 })
+    const songWithMetadata = { ...newSong, metadataJson }
+    await window.flowAPI.invoke('lyric:update', newSong.id, { metadataJson })
+    setBpm(90)
+    setSongs(prev => [songWithMetadata, ...prev])
     setProjects(prev => prev.map(p =>
       p.id === currentProject.id
         ? { ...p, _count: { songs: (p._count?.songs ?? 0) + 1 } }
         : p
     ))
-    loadSong(newSong)
+    loadSong(songWithMetadata)
   }
 
   async function handleNewProject() {
@@ -304,6 +337,20 @@ export default function App() {
     if (currentProject) {
       await handleNewLyric()
     }
+  }
+
+  async function handleAttachAudio() {
+    if (!currentSong || !window.flowAPI) return
+    const result = await window.flowAPI.invoke('audio:select') as { canceled: boolean; path?: string; name?: string }
+    if (result.canceled || !result.path || !result.name) return
+
+    const metadataJson = buildSongMetadata(currentSong, {
+      bpm,
+      audio: { path: result.path, name: result.name },
+    })
+    await window.flowAPI.invoke('lyric:update', currentSong.id, { metadataJson })
+    setCurrentSong(prev => prev ? { ...prev, metadataJson } : prev)
+    setSongs(prev => prev.map(song => song.id === currentSong.id ? { ...song, metadataJson } : song))
   }
 
   async function handleRenameProject(id: string, title: string) {
@@ -345,6 +392,9 @@ export default function App() {
         onNewProject={handleNewProject}
         onRenameProject={handleRenameProject}
         onDeleteProject={handleDeleteProject}
+        audioName={parseSongMetadata(currentSong).audio?.name ?? null}
+        audioPath={parseSongMetadata(currentSong).audio?.path ?? null}
+        onAttachAudio={handleAttachAudio}
       />
 
       <div className="flex-1 min-w-0 flex flex-col relative bg-[#09090d]">

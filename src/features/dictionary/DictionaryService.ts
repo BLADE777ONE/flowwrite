@@ -30,6 +30,7 @@ interface UrbanCategory {
   keys: string[]
   girias: string[]
   sinonimos: string[]
+  stems?: string[]
 }
 
 function normalize(word: string): string {
@@ -64,16 +65,35 @@ function scoreCategoryMatch(rawWord: string, category: UrbanCategory): number {
   const compact = compactKey(rawWord)
   let score = 0
 
-  for (const key of category.keys) {
+  for (const key of [...category.keys, ...(category.stems ?? [])]) {
     const keyNorm = normalize(key)
     const keyCompact = compactKey(key)
     if (!keyNorm) continue
     if (norm === keyNorm || compact === keyCompact) score = Math.max(score, 1)
     else if (norm.includes(keyNorm) || keyNorm.includes(norm)) score = Math.max(score, 0.72)
     else if (compact.includes(keyCompact) || keyCompact.includes(compact)) score = Math.max(score, 0.62)
+    else if (compact.length >= 5 && keyCompact.length >= 5 && compact.slice(0, 5) === keyCompact.slice(0, 5)) score = Math.max(score, 0.48)
+    else if (compact.length >= 4 && keyCompact.length >= 4 && compact.slice(0, 4) === keyCompact.slice(0, 4)) score = Math.max(score, 0.38)
   }
 
   return score
+}
+
+function getFallbackCategories(categories: UrbanCategory[], rawWord: string): Array<{ category: UrbanCategory; score: number }> {
+  const scored = categories
+    .map(category => ({ category, score: scoreCategoryMatch(rawWord, category) }))
+    .filter(item => item.score >= 0.38)
+    .sort((a, b) => b.score - a.score)
+
+  if (scored.length > 0) return scored.slice(0, 4)
+
+  const genericIds = ['quebrada', 'rua', 'dinheiro', 'ostentacao', 'amor', 'lealdade', 'falsidade']
+  return genericIds
+    .map((id, index) => {
+      const category = categories.find(item => item.id === id)
+      return category ? { category, score: Math.max(0.34, 0.56 - index * 0.03) } : null
+    })
+    .filter((item): item is { category: UrbanCategory; score: number } => Boolean(item))
 }
 
 function buildTheme(category: UrbanCategory, score: number): DictionaryTheme {
@@ -97,20 +117,18 @@ function getUrbanEntry(rawWord: string): DictionaryResult {
   const entry = lookup[norm] ?? lookup[compact]
 
   if (!entry) {
-    const fallbackCategories = categories
-      .map(category => ({ category, score: scoreCategoryMatch(rawWord, category) }))
-      .filter(item => item.score >= 0.6)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
+    const fallbackCategories = getFallbackCategories(categories, rawWord)
 
     return {
       girias: uniq(fallbackCategories.flatMap(item => item.category.girias))
         .filter(item => normalize(item) !== norm)
-        .slice(0, 32),
-      sinonimos: [],
+        .slice(0, 48),
+      sinonimos: uniq(fallbackCategories.flatMap(item => item.category.sinonimos))
+        .filter(item => normalize(item) !== norm)
+        .slice(0, 48),
       relacionados: uniq(fallbackCategories.flatMap(item => item.category.sinonimos))
         .filter(item => normalize(item) !== norm)
-        .slice(0, 32),
+        .slice(0, 48),
       antonimos: [],
       themes: fallbackCategories.map(item => buildTheme(item.category, item.score)),
     }

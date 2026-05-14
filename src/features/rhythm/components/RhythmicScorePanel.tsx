@@ -224,6 +224,7 @@ export function RhythmicScorePanel({
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<ScoreViewMode>('compact')
   const [pocket, setPocket] = useState<RhythmPocket>('straight16')
+  const [showHelp, setShowHelp] = useState(false)
   const [overrides, setOverrides] = useState<SlotOverrides>({})
   const selectedPocket = POCKETS.find(item => item.id === pocket) ?? POCKETS[0]
 
@@ -270,6 +271,14 @@ export function RhythmicScorePanel({
         </div>
         {!collapsed && (
           <div className="rhythm-header-actions">
+            <button
+              type="button"
+              className="rhythm-help-btn"
+              onClick={() => setShowHelp(value => !value)}
+              title="Entender a partitura ritmica"
+            >
+              ?
+            </button>
             <div className="rhythm-view-toggle" role="group" aria-label="Modo da partitura">
               <button
                 type="button"
@@ -312,6 +321,14 @@ export function RhythmicScorePanel({
           <span>{rhythmLines.length} barras</span>
           <span>{averageSyllables || '--'} sil/bar</span>
           <span>{playing ? 'tocando' : selectedPocket.label}</span>
+        </div>
+      )}
+
+      {!collapsed && showHelp && (
+        <div className="rhythm-help">
+          <strong>Como ler:</strong> cada linha e uma barra. Os blocos mostram onde as silabas podem cair no compasso.
+          A partitura nao obriga o artista a cantar exatamente ali; ela serve para testar pocket, pausa, respiro e swing.
+          Use Trap Flow para tercinas e Editar para arrastar silabas para frente ou para tras.
         </div>
       )}
 

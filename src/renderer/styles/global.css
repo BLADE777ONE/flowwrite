@@ -477,6 +477,40 @@
     background: rgba(0,0,0,0.22);
   }
 
+  .rhythm-help-btn {
+    width: 2.1rem;
+    height: 2.1rem;
+    flex: 0 0 auto;
+    border-radius: 0.42rem;
+    border: 1px solid rgba(0,229,255,0.18);
+    background: rgba(0,229,255,0.07);
+    color: #00E5FF;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.75rem;
+    font-weight: 900;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+
+  .rhythm-help-btn:hover {
+    border-color: rgba(0,229,255,0.45);
+    background: rgba(0,229,255,0.12);
+  }
+
+  .rhythm-help {
+    margin: 0.45rem 1rem 0.35rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 0.45rem;
+    background: rgba(0,229,255,0.055);
+    color: rgba(226,232,240,0.72);
+    font-size: 0.68rem;
+    line-height: 1.45;
+  }
+
+  .rhythm-help strong {
+    color: #e5faff;
+  }
+
   .rhythm-pocket-toggle button,
   .rhythm-view-toggle button {
     height: 1.65rem;

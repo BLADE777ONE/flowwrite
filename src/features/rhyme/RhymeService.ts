@@ -136,7 +136,7 @@ function scoreByVowelShape(nucA: string, nucB: string): number {
       return 0.48
     }
 
-    if (sameSignature) return 0.32
+    if (sameSignature) return 0.44
     if (sameEndingSignature) return 0.28
   }
 
@@ -454,6 +454,17 @@ export function findRhymesTyped(input: string, limit = 12): RhymeSuggestion[] {
     for (const candidate of WORD_BANK) {
       const sc = scoreBySuffix(normInput, normalize(candidate))
       if (sc > 0) addResult(candidate, sc, 'suffix')
+    }
+  }
+
+  // 5. Modo criativo: rap/trap precisa de volume. Quando a palavra e rara,
+  // abrimos a tolerancia para rimas inclinadas e assonancias, mantendo score
+  // visivel para o artista decidir o que funciona na voz.
+  if (results.length < 40) {
+    for (const candidate of WORD_BANK) {
+      const sc = Math.max(scoreByNucleus(input, candidate), scoreBySuffix(normInput, normalize(candidate)))
+      if (sc >= 0.28) addResult(candidate, sc, 'bank', -0.04)
+      if (results.length >= 80) break
     }
   }
 

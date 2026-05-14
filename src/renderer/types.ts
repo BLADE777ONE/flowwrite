@@ -8,6 +8,7 @@ export interface Song {
   id: string
   title: string
   content: string
+  metadataJson?: string | null
   projectId: string
   updatedAt: string
 }

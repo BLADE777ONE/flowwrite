@@ -68,12 +68,12 @@ const rhymeLaneStyle: Record<RhymeSuggestion['lane'], string> = {
 
 type RhymeLaneFilter = 'all' | RhymeSuggestion['lane']
 
-const rhymeLaneFilters: Array<{ id: RhymeLaneFilter; label: string }> = [
-  { id: 'all', label: 'Todas' },
-  { id: 'forte', label: 'Final' },
-  { id: 'criativa', label: 'Punch' },
-  { id: 'inclinada', label: 'Trap' },
-  { id: 'frase', label: 'Frases' },
+const rhymeLaneFilters: Array<{ id: RhymeLaneFilter; label: string; help: string }> = [
+  { id: 'all', label: 'Todas', help: 'Mostra ate 40 caminhos de rima misturando fechamento, punch, trap e frases.' },
+  { id: 'forte', label: 'Final', help: 'Rimas mais seguras para fechar fim de barra.' },
+  { id: 'criativa', label: 'Punch', help: 'Opcoes mais incomuns para punchline ou virada de ideia.' },
+  { id: 'inclinada', label: 'Trap', help: 'Rimas aproximadas por vogal/som, boas para off-beat e melodia.' },
+  { id: 'frase', label: 'Frases', help: 'Expressoes com mais de uma palavra para usar como queda de linha.' },
 ]
 
 function TabButton({ tab, activeTab, onTabChange, children }: {
@@ -233,59 +233,41 @@ function FlowMeterDial({
   rhythm: number
   breath: number
 }) {
-  const circumference = 2 * Math.PI * 48
-  const rings = [
-    { value: metric, radius: 48, stroke: '#a855f7', width: 6 },
-    { value: speed, radius: 40, stroke: '#22d3ee', width: 5 },
-    { value: fit, radius: 33, stroke: '#34d399', width: 4 },
-    { value: rhythm, radius: 26, stroke: '#f472b6', width: 3 },
-    { value: breath, radius: 20, stroke: '#fb923c', width: 3 },
+  const rows = [
+    { label: 'Velocidade', value: speed },
+    { label: 'Encaixe', value: fit },
+    { label: 'Metrica', value: metric },
+    { label: 'Ritmo', value: rhythm },
+    { label: 'Respiro', value: breath },
   ]
+  const tone = score >= 82 ? 'forte' : score >= 64 ? 'bom' : 'ajustar'
 
   return (
-    <div className="rounded-lg border border-purple-500/20 bg-[radial-gradient(circle_at_50%_20%,rgba(147,51,234,0.18),rgba(12,12,17,0.92)_58%)] p-4 shadow-[0_0_36px_rgba(124,58,237,0.16)]">
-      <div className="relative mx-auto h-44 w-44">
-        <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90 overflow-visible">
-          {rings.map(ring => {
-            const ringCircumference = 2 * Math.PI * ring.radius
-            return (
-              <g key={`${ring.radius}-${ring.stroke}`}>
-                <circle
-                  cx="60"
-                  cy="60"
-                  r={ring.radius}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.06)"
-                  strokeWidth={ring.width}
+    <div className="rounded-lg border border-white/[0.08] bg-[#111117] p-3 shadow-[0_0_28px_rgba(0,0,0,0.22)]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-24 w-24 flex-shrink-0 flex-col items-center justify-center rounded-md border border-white/[0.08] bg-black/35">
+          <p className="font-mono text-4xl font-black text-white leading-none tabular-nums">{score}</p>
+          <p className="mt-1 text-[10px] text-gray-500 font-black tracking-[0.18em]">/100</p>
+          <p className="mt-1 text-[10px] text-cyan-300 font-black uppercase tracking-[0.16em]">{tone}</p>
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-black">Flow Meter</p>
+            <p className="mt-0.5 text-xs text-white font-bold">{flowMeterLabel(score)}</p>
+          </div>
+          {rows.map(row => (
+            <div key={row.label} className="grid grid-cols-[4.8rem_1fr_2rem] items-center gap-2">
+              <span className="truncate text-[10px] text-gray-500">{row.label}</span>
+              <div className="h-1.5 overflow-hidden rounded-full bg-black/50">
+                <div
+                  className="h-full rounded-full bg-gray-200"
+                  style={{ width: `${row.value}%`, opacity: 0.42 + row.value / 180 }}
                 />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r={ring.radius}
-                  fill="none"
-                  stroke={ring.stroke}
-                  strokeWidth={ring.width}
-                  strokeLinecap="round"
-                  strokeDasharray={`${(ring.value / 100) * ringCircumference} ${ringCircumference}`}
-                  className="drop-shadow-[0_0_8px_rgba(168,85,247,0.65)]"
-                />
-              </g>
-            )
-          })}
-          <circle
-            cx="60"
-            cy="60"
-            r="54"
-            fill="none"
-            stroke="rgba(255,255,255,0.03)"
-            strokeWidth="1"
-            strokeDasharray={`${(score / 100) * circumference} ${circumference}`}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="font-mono text-5xl font-black text-white tracking-tight">{score}</p>
-          <p className="text-[10px] text-gray-500 font-black tracking-[0.22em]">/100</p>
-          <p className="mt-1 text-[10px] text-cyan-300 font-black tracking-[0.22em]">{flowMeterLabel(score)}</p>
+              </div>
+              <span className="text-right font-mono text-[10px] text-gray-300 tabular-nums">{row.value}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -722,7 +704,7 @@ function RhymeMovePanel({ moves, onInsertWord }: { moves: RhymeMove[]; onInsertW
 
 function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string; lines: string[]; onInsertWord: (word: string) => void }) {
   const [activeLane, setActiveLane] = useState<RhymeLaneFilter>('all')
-  const rhymes = findRhymesTyped(selectedWord, 72)
+  const rhymes = findRhymesTyped(selectedWord, 140)
   const analysis = analyzeRhymes(lines.join('\n'))
   const families = buildRhymeFamilies(rhymes, 4)
   const moves = buildRhymeMoves(selectedWord, rhymes, 4)
@@ -732,6 +714,9 @@ function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string
   }, { forte: [], criativa: [], inclinada: [], frase: [], simples: [] })
   const visibleLanes = (['forte', 'criativa', 'frase', 'inclinada', 'simples'] as RhymeSuggestion['lane'][])
     .filter(lane => activeLane === 'all' || activeLane === lane)
+  const activeFilter = rhymeLaneFilters.find(filter => filter.id === activeLane) ?? rhymeLaneFilters[0]
+  const filterCount = activeLane === 'all' ? rhymes.length : grouped[activeLane].length
+  const visibleLimit = activeLane === 'all' ? 40 : Math.max(40, filterCount)
 
   return (
     <div>
@@ -749,7 +734,7 @@ function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string
           <div className="rounded-md border border-cyan-800/30 bg-cyan-950/10 p-3 mb-4">
             <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">Radar de rima</p>
             <p className="text-[10px] text-gray-500 mt-1">
-              Clique para substituir no editor. Use fortes para fechamento, criativas para punch e inclinadas para trap/off-beat.
+              Clique para substituir no editor. Final fecha barra, Punch busca surpresa, Trap aceita rima inclinada e Frases traz quedas prontas.
             </p>
           </div>
           <div className="grid grid-cols-5 gap-1 mb-4">
@@ -758,22 +743,49 @@ function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string
                 key={filter.id}
                 type="button"
                 onClick={() => setActiveLane(filter.id)}
+                title={filter.help}
                 className={`rounded-md px-1.5 py-1.5 text-[10px] font-black transition ${
                   activeLane === filter.id
                     ? 'bg-purple-600/80 text-white shadow-[0_0_14px_rgba(124,58,237,0.2)]'
                     : 'bg-white/[0.035] text-gray-500 hover:text-gray-200'
                 }`}
               >
-                {filter.label}
+                <span className="block">{filter.label}</span>
+                <span className="block font-mono text-[9px] opacity-60">
+                  {filter.id === 'all' ? Math.min(rhymes.length, 40) : grouped[filter.id].length}
+                </span>
               </button>
             ))}
+          </div>
+          <div className="mb-4 rounded-md border border-white/[0.07] bg-white/[0.03] p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-black">{activeFilter.label}</p>
+              <span className="font-mono text-[10px] text-cyan-300">
+                {activeLane === 'all' ? Math.min(rhymes.length, 40) : filterCount} ideias
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] leading-snug text-gray-500">{activeFilter.help}</p>
           </div>
           <RhymeFamilyStrip families={families} onInsertWord={onInsertWord} />
           <RhymeMovePanel moves={moves} onInsertWord={onInsertWord} />
           <div className="space-y-4">
             {visibleLanes.map(lane => {
-              const laneRhymes = grouped[lane].slice(0, lane === 'simples' ? 8 : 12)
-              if (laneRhymes.length === 0) return null
+              const laneRhymes = activeLane === 'all'
+                ? grouped[lane].slice(0, lane === 'simples' ? 6 : 10)
+                : grouped[lane].slice(0, visibleLimit)
+              if (laneRhymes.length === 0) {
+                if (activeLane === lane) {
+                  return (
+                    <section key={lane} className="rounded-md border border-white/[0.07] bg-white/[0.03] p-3">
+                      <p className="text-xs text-gray-400 font-bold">{rhymeLaneTitle[lane]}</p>
+                      <p className="mt-1 text-[10px] leading-snug text-gray-600">
+                        Ainda nao encontrei ideias nessa categoria para "{selectedWord}". Use Todas ou Trap para ampliar o campo sonoro.
+                      </p>
+                    </section>
+                  )
+                }
+                return null
+              }
               return (
                 <section key={lane}>
                   <div className="flex items-center justify-between mb-1.5">

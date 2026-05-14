@@ -58,6 +58,9 @@ export function SectionToolbar({ editor }: Props) {
           <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
             Estrutura da letra
           </p>
+          <p className="px-2 pb-2 text-[10px] leading-snug text-gray-500">
+            Use Seção para marcar Intro, Verso, Refrão e Bridge dentro da letra. Isso ajuda o OBloco a analisar cada parte no contexto certo.
+          </p>
 
           <div className="grid grid-cols-2 gap-1.5">
             {SECTIONS.map(section => (

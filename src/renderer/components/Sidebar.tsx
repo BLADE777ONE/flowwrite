@@ -2,6 +2,25 @@ import { useState } from 'react'
 import { useEditorStore } from '../../features/editor/editorStore'
 import type { Project, Song } from '../types'
 
+const KNOWLEDGE_TOPICS = [
+  {
+    title: 'O que e metrica?',
+    body: 'E a quantidade e distribuicao das silabas nas barras. No rap, ela ajuda a frase caber no beat sem atropelar nem sobrar demais.',
+  },
+  {
+    title: 'O que e flow?',
+    body: 'E o jeito que a letra anda no ritmo: pausas, velocidade, acentos, swing e como voce encaixa a voz entre bumbo, caixa e hi-hat.',
+  },
+  {
+    title: 'Como criar triple flow?',
+    body: 'Pense em 3 pulsos dentro do tempo: ta-ta-ta. Use grupos curtos, repeticao sonora e pausas pequenas para gerar bounce.',
+  },
+  {
+    title: 'Para que serve a partitura?',
+    body: 'Ela nao manda cantar exatamente igual. Ela mostra uma leitura visual do pocket para testar encaixe, respiro e deslocamentos.',
+  },
+]
+
 interface SidebarProps {
   projects: Project[]
   songs: Song[]
@@ -13,6 +32,9 @@ interface SidebarProps {
   onNewProject: () => void
   onRenameProject: (id: string, title: string) => void
   onDeleteProject: (id: string) => void
+  audioName: string | null
+  audioPath: string | null
+  onAttachAudio: () => void
 }
 
 function ProjectItem({
@@ -113,8 +135,13 @@ export function Sidebar({
   onNewProject,
   onRenameProject,
   onDeleteProject,
+  audioName,
+  audioPath,
+  onAttachAudio,
 }: SidebarProps) {
   const { bpm } = useEditorStore()
+  const audioSrc = audioPath ? encodeURI(`file:///${audioPath.replace(/\\/g, '/')}`) : undefined
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   return (
     <aside
@@ -221,19 +248,65 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* BPM waveform */}
+      {/* Conhecimento */}
       <div className="px-3.5 py-3 border-t border-white/[0.06]">
-        <div className="h-14 rounded-md border border-white/[0.06] bg-black/30 px-2 py-2 flex items-end gap-1 overflow-hidden">
-          {Array.from({ length: 28 }).map((_, index) => {
-            const height = 16 + ((index * 13) % 34)
-            return (
-              <span
-                key={index}
-                className="flex-1 rounded-full bg-gradient-to-t from-purple-700 to-cyan-300 opacity-70"
-                style={{ height: `${height}px` }}
-              />
-            )
-          })}
+        <button
+          type="button"
+          onClick={() => setKnowledgeOpen(value => !value)}
+          className="flex w-full items-center justify-between rounded-md border border-cyan-500/20 bg-cyan-500/[0.08] px-3 py-2 text-left transition hover:border-cyan-400/40 hover:bg-cyan-500/10"
+        >
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300 font-black">Conhecimento</p>
+            <p className="mt-0.5 text-[10px] text-gray-500">Metrica, flow e escrita</p>
+          </div>
+          <span className="font-mono text-xs text-cyan-300">{knowledgeOpen ? '-' : '+'}</span>
+        </button>
+
+        {knowledgeOpen && (
+          <div className="mt-2 max-h-44 space-y-2 overflow-y-auto editor-scroll rounded-md border border-white/[0.06] bg-black/25 p-2">
+            {KNOWLEDGE_TOPICS.map(topic => (
+              <div key={topic.title} className="rounded border border-white/[0.06] bg-white/[0.025] p-2">
+                <p className="text-[11px] font-bold text-white">{topic.title}</p>
+                <p className="mt-1 text-[10px] leading-snug text-gray-500">{topic.body}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Beat de referencia */}
+      <div className="px-3.5 py-3 border-t border-white/[0.06]">
+        <div className="rounded-md border border-white/[0.06] bg-black/30 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300 font-black">Beat</p>
+              <p className="mt-1 truncate text-[10px] text-gray-400">
+                {audioName ?? 'Nenhum audio anexado'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onAttachAudio}
+              className="rounded border border-purple-500/40 bg-purple-600/20 px-2 py-1 text-[10px] font-black text-purple-100 transition hover:bg-purple-600/35"
+              title="Anexar beat de referencia"
+            >
+              Anexar
+            </button>
+          </div>
+
+          {audioName ? (
+            <audio
+              className="mt-2 h-8 w-full"
+              controls
+              src={audioSrc}
+            />
+          ) : (
+            <div className="mt-2 h-10 rounded border border-dashed border-white/[0.08] bg-white/[0.02] px-2 py-2">
+              <p className="text-[10px] leading-snug text-gray-600">
+                Coloque o beat da letra aqui para escrever ouvindo a referencia.
+              </p>
+            </div>
+          )}
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500">
           <span>BPM</span>
