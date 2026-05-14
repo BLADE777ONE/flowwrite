@@ -14,7 +14,7 @@ import { registerSettingsHandlers } from './ipc/settingsHandlers'
 import { registerPythonHandlers } from './ipc/pythonHandlers'
 import { registerUserWordHandlers } from './ipc/userWordHandlers'
 import { registerAIHandlers } from './ipc/aiHandlers'
-import { registerAudioHandlers, registerAudioProtocol, registerAudioProtocolPrivileges } from './ipc/audioHandlers'
+import { registerAudioHandlers, registerAudioProtocol, registerAudioProtocolPrivileges, startAudioServer, stopAudioServer } from './ipc/audioHandlers'
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -210,6 +210,7 @@ app.whenReady().then(async () => {
   registerPythonHandlers(PYTHON_PORT)
   registerAIHandlers()
   registerAudioProtocol()
+  startAudioServer()
   registerAudioHandlers()
 
   createWindow()
@@ -221,6 +222,7 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', async () => {
   stopPythonServer()
+  stopAudioServer()
   await disconnectDB()
   if (process.platform !== 'darwin') app.quit()
 })

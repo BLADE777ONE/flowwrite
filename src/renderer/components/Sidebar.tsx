@@ -142,7 +142,9 @@ export function Sidebar({
   onAttachAudio,
 }: SidebarProps) {
   const { bpm } = useEditorStore()
-  const audioSrc = audioUrl ?? (audioPath ? `obloco-audio://beat/play?path=${encodeURIComponent(audioPath)}` : undefined)
+  const audioSrc = audioPath
+    ? `http://127.0.0.1:5057/audio?path=${encodeURIComponent(audioPath)}`
+    : audioUrl ?? undefined
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   return (
