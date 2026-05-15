@@ -11,6 +11,11 @@ interface RhythmicScorePanelProps {
 
 type SlotOverrides = Record<string, number>
 type ScoreViewMode = 'compact' | 'detail'
+type RhythmInsight = {
+  label: string
+  hint: string
+  className: 'low' | 'cool' | 'good' | 'hot'
+}
 
 const POCKETS: Array<{ id: RhythmPocket; label: string; hint: string; markers: string[] }> = [
   {
@@ -48,8 +53,8 @@ function buildLineOverrides(overrides: SlotOverrides, lineIndex: number): Record
 function EmptyScore() {
   return (
     <div className="rhythm-empty">
-      <div className="rhythm-empty-icon">16</div>
-      <p>Digite algumas barras para desenhar o encaixe rítmico.</p>
+      <div className="rhythm-empty-icon">FLOW</div>
+      <p>Digite algumas barras para ver onde suas silabas caem no beat, onde sobra respiro e onde o flow fica cheio.</p>
     </div>
   )
 }
@@ -87,6 +92,42 @@ function getLineDensity(syllableCount: number): { label: string; className: stri
   if (syllableCount >= 10) return { label: 'pocket', className: 'good' }
   if (syllableCount >= 5) return { label: 'leve', className: 'cool' }
   return { label: 'vazio', className: 'low' }
+}
+
+function getRhythmInsight(map: RhythmLineMap): RhythmInsight {
+  const count = map.syllables.length
+  const strongHits = map.syllables.filter(note => note.startsBeat).length
+  const strongRatio = count > 0 ? strongHits / count : 0
+
+  if (count >= 15) {
+    return {
+      label: 'cheio',
+      hint: 'Muita silaba na barra. Pode pedir double time, corte de palavra ou pausa marcada.',
+      className: 'hot',
+    }
+  }
+
+  if (count <= 4) {
+    return {
+      label: 'respiro',
+      hint: 'Poucas silabas. Bom para pausa, resposta, ad-lib ou entrada antes da proxima barra.',
+      className: 'cool',
+    }
+  }
+
+  if (strongRatio >= 0.38) {
+    return {
+      label: 'ancorado',
+      hint: 'Varias silabas caem em tempos fortes. Tende a soar firme e facil de seguir.',
+      className: 'good',
+    }
+  }
+
+  return {
+    label: 'solto',
+    hint: 'As silabas ficam mais entre os tempos. Pode soar mais swingado ou mais dificil de encaixar.',
+    className: 'low',
+  }
 }
 
 function SyllableNote({
@@ -160,14 +201,15 @@ function RhythmLine({
 }) {
   const filledSlots = new Set(map.syllables.map(note => note.slot))
   const density = getLineDensity(map.syllables.length)
+  const insight = getRhythmInsight(map)
   const beatStep = map.pocket === 'triplet' ? 3 : 4
 
   return (
-    <div className={`rhythm-line ${active ? 'is-active' : ''} is-${density.className}`}>
+    <div className={`rhythm-line ${active ? 'is-active' : ''} is-${density.className}`} title={insight.hint}>
       <div className="rhythm-line-meta">
-        <small>BAR</small>
+        <small>barra</small>
         <span>{String(displayIndex + 1).padStart(2, '0')}</span>
-        {!collapsed && <small>{mode === 'detail' ? `${Math.round(map.barDurationMs)}ms` : density.label}</small>}
+        {!collapsed && <small className={`rhythm-line-insight is-${insight.className}`}>{mode === 'detail' ? `${map.syllables.length} sil.` : insight.label}</small>}
       </div>
 
       {!collapsed && mode === 'detail' && (
@@ -214,6 +256,17 @@ function RhythmLine({
   )
 }
 
+function RhythmLegend() {
+  return (
+    <div className="rhythm-legend">
+      <span><b className="is-strong" />Tempo forte</span>
+      <span><b className="is-note" />Silaba/ataque vocal</span>
+      <span><b className="is-breath" />Espaco de respiro</span>
+      <span><b className="is-playhead" />Beat tocando</span>
+    </div>
+  )
+}
+
 export function RhythmicScorePanel({
   lines,
   bpm,
@@ -224,7 +277,7 @@ export function RhythmicScorePanel({
   const [collapsed, setCollapsed] = useState(false)
   const [mode, setMode] = useState<ScoreViewMode>('compact')
   const [pocket, setPocket] = useState<RhythmPocket>('straight16')
-  const [showHelp, setShowHelp] = useState(false)
+  const [showHelp, setShowHelp] = useState(true)
   const [overrides, setOverrides] = useState<SlotOverrides>({})
   const selectedPocket = POCKETS.find(item => item.id === pocket) ?? POCKETS[0]
 
@@ -259,15 +312,20 @@ export function RhythmicScorePanel({
         type="button"
         className="rhythm-collapse-btn"
         onClick={() => setCollapsed(value => !value)}
-        title={collapsed ? 'Expandir partitura rítmica' : 'Recolher partitura rítmica'}
+        title={collapsed ? 'Expandir Mapa de Flow' : 'Recolher Mapa de Flow'}
       >
         {collapsed ? '^' : 'v'}
       </button>
 
       <div className="rhythm-panel-header">
         <div>
-          <p className="rhythm-kicker">Partitura</p>
-          {!collapsed && <h2>Bloco {Math.floor(startBarIndex / 4) + 1}</h2>}
+          <p className="rhythm-kicker">Mapa de Flow</p>
+          {!collapsed && (
+            <>
+              <h2>Bloco {Math.floor(startBarIndex / 4) + 1}</h2>
+              <p className="rhythm-subtitle">Onde sua letra cai no beat antes de gravar.</p>
+            </>
+          )}
         </div>
         {!collapsed && (
           <div className="rhythm-header-actions">
@@ -275,24 +333,24 @@ export function RhythmicScorePanel({
               type="button"
               className="rhythm-help-btn"
               onClick={() => setShowHelp(value => !value)}
-              title="Entender a partitura ritmica"
+              title="Entender o Mapa de Flow"
             >
               ?
             </button>
-            <div className="rhythm-view-toggle" role="group" aria-label="Modo da partitura">
+            <div className="rhythm-view-toggle" role="group" aria-label="Modo do Mapa de Flow">
               <button
                 type="button"
                 className={mode === 'compact' ? 'active' : ''}
                 onClick={() => setMode('compact')}
               >
-                Mini
+                Ler
               </button>
               <button
                 type="button"
                 className={mode === 'detail' ? 'active' : ''}
                 onClick={() => setMode('detail')}
               >
-                Editar
+                Ajustar
               </button>
             </div>
             <div className="rhythm-pocket-toggle" role="group" aria-label="Pocket rítmico">
@@ -326,12 +384,13 @@ export function RhythmicScorePanel({
 
       {!collapsed && showHelp && (
         <div className="rhythm-help">
-          <strong>Como ler:</strong> cada linha e uma barra. Os blocos mostram onde as silabas podem cair no compasso.
-          A partitura nao obriga o artista a cantar exatamente ali; ela serve para testar pocket, pausa, respiro e swing.
-          Use Trap Flow para tercinas e Editar para arrastar silabas para frente ou para tras.
+          <strong>Para que serve:</strong> o Mapa de Flow nao e uma regra musical; ele e um raio-x do pocket.
+          Cada faixa mostra uma barra da letra, os riscos verticais sao os tempos do beat, e os blocos coloridos sao
+          as silabas/ataques vocais. Use para descobrir onde acelerar, onde respirar e se a frase esta cheia demais.
         </div>
       )}
 
+      {!collapsed && <RhythmLegend />}
       {!collapsed && <BeatHeader markers={selectedPocket.markers} />}
 
       <div className="rhythm-lines editor-scroll">

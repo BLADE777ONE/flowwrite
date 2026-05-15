@@ -377,8 +377,8 @@
     position: relative;
     width: 100%;
     min-width: 0;
-    height: 10.2rem;
-    min-height: 10.2rem;
+    height: 13.4rem;
+    min-height: 13.4rem;
     display: flex;
     flex-direction: column;
     background: #121212;
@@ -395,8 +395,8 @@
   }
 
   .rhythm-panel.is-detail {
-    height: 16.8rem;
-    min-height: 16.8rem;
+    height: 18.8rem;
+    min-height: 18.8rem;
   }
 
   .rhythm-panel.is-collapsed {
@@ -456,6 +456,14 @@
     margin-top: 0.18rem;
   }
 
+  .rhythm-subtitle {
+    margin-top: 0.18rem;
+    max-width: 24rem;
+    color: rgba(255,255,255,0.42);
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
   .rhythm-header-actions {
     display: flex;
     align-items: center;
@@ -497,7 +505,7 @@
   }
 
   .rhythm-help {
-    margin: 0.45rem 1rem 0.35rem;
+    margin: 0.45rem 1rem 0.25rem;
     padding: 0.55rem 0.7rem;
     border: 1px solid rgba(0,229,255,0.15);
     border-radius: 0.45rem;
@@ -579,6 +587,56 @@
     background: rgba(0,0,0,0.12);
   }
 
+  .rhythm-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    padding: 0.28rem 1rem 0.35rem;
+    border-bottom: 1px solid rgba(255,255,255,0.055);
+    color: rgba(255,255,255,0.44);
+    font-size: 0.58rem;
+    font-weight: 750;
+  }
+
+  .rhythm-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+
+  .rhythm-legend b {
+    width: 0.75rem;
+    height: 0.45rem;
+    display: inline-block;
+    border-radius: 99px;
+  }
+
+  .rhythm-legend b.is-strong {
+    width: 1px;
+    height: 0.8rem;
+    border-radius: 0;
+    background: rgba(0,229,255,0.72);
+    box-shadow: 0 0 8px rgba(0,229,255,0.35);
+  }
+
+  .rhythm-legend b.is-note {
+    background: linear-gradient(90deg, rgba(132,80,245,0.95), rgba(0,229,255,0.76));
+  }
+
+  .rhythm-legend b.is-breath {
+    background: rgba(255,255,255,0.11);
+  }
+
+  .rhythm-legend b.is-playhead {
+    width: 2px;
+    height: 0.85rem;
+    border-radius: 0;
+    background: #00E5FF;
+    box-shadow: 0 0 10px rgba(0,229,255,0.65);
+  }
+
   .rhythm-panel-stats span {
     min-width: 0;
     max-width: 8.8rem;
@@ -615,8 +673,8 @@
   }
 
   .rhythm-header-spacer {
-    width: 2.25rem;
-    flex: 0 0 2.25rem;
+    width: 3.45rem;
+    flex: 0 0 3.45rem;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -682,7 +740,7 @@
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    padding: 0.28rem 0 0.12rem 2.85rem;
+    padding: 0.28rem 0 0.12rem 4.05rem;
     color: rgba(255,255,255,0.38);
     font-family: theme('fontFamily.mono');
     border-top: 1px solid rgba(0,229,255,0.12);
@@ -708,8 +766,8 @@
   }
 
   .rhythm-line-meta {
-    width: 2.25rem;
-    flex: 0 0 2.25rem;
+    width: 3.45rem;
+    flex: 0 0 3.45rem;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -733,6 +791,36 @@
     color: rgba(0,229,255,0.42);
     font-family: theme('fontFamily.mono');
     font-size: 0.5rem;
+  }
+
+  .rhythm-line-meta small.rhythm-line-insight {
+    max-width: 2.9rem;
+    padding: 0.08rem 0.22rem;
+    border-radius: 0.25rem;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rhythm-line-insight.is-hot {
+    color: #fca5a5;
+    background: rgba(239,68,68,0.11);
+  }
+
+  .rhythm-line-insight.is-good {
+    color: #86efac;
+    background: rgba(34,197,94,0.10);
+  }
+
+  .rhythm-line-insight.is-cool {
+    color: #93c5fd;
+    background: rgba(59,130,246,0.10);
+  }
+
+  .rhythm-line-insight.is-low {
+    color: #d8b4fe;
+    background: rgba(168,85,247,0.10);
   }
 
   .rhythm-track {

@@ -69,10 +69,10 @@ const steps: OnboardingStep[] = [
   },
   {
     id: 'rhythm',
-    eyebrow: 'Partitura',
-    title: 'Veja o flow de cada barra em tempo real',
+    eyebrow: 'Mapa de Flow',
+    title: 'Veja como cada barra cai no beat',
     description:
-      'O painel ritmico transforma o texto em uma leitura de compasso para voce sentir respiro, densidade e bounce.',
+      'O Mapa de Flow mostra onde as silabas entram no compasso, onde sobra respiro e quando a barra esta cheia demais. Use como raio-x do pocket, nao como regra fixa.',
     selector: '[data-onboarding="rhythm-panel"]',
     preferredSide: 'top',
   },
