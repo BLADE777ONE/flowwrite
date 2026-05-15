@@ -55,6 +55,10 @@ const USER_WORD_CHANNELS = [
   'userword:delete',
 ] as const
 
+const DICTIONARY_CHANNELS = [
+  'dictionary:lookup',
+] as const
+
 const AI_CHANNELS = [
   'ai:analyzeFlow',
   'ai:suggest',
@@ -78,6 +82,7 @@ type AllChannels =
   | typeof SETTINGS_CHANNELS[number]
   | typeof RHYME_DICT_CHANNELS[number]
   | typeof USER_WORD_CHANNELS[number]
+  | typeof DICTIONARY_CHANNELS[number]
   | typeof AI_CHANNELS[number]
   | typeof PYTHON_CHANNELS[number]
 
@@ -89,6 +94,7 @@ const ALL_CHANNELS: ReadonlyArray<AllChannels> = [
   ...SETTINGS_CHANNELS,
   ...RHYME_DICT_CHANNELS,
   ...USER_WORD_CHANNELS,
+  ...DICTIONARY_CHANNELS,
   ...AI_CHANNELS,
   ...PYTHON_CHANNELS,
 ]

@@ -14,6 +14,7 @@ import { registerSettingsHandlers } from './ipc/settingsHandlers'
 import { registerPythonHandlers } from './ipc/pythonHandlers'
 import { registerUserWordHandlers } from './ipc/userWordHandlers'
 import { registerAIHandlers } from './ipc/aiHandlers'
+import { registerDictionaryHandlers } from './ipc/dictionaryHandlers'
 
 function isBrokenPipe(error: unknown): boolean {
   return error instanceof Error && (error as NodeJS.ErrnoException).code === 'EPIPE'
@@ -218,6 +219,7 @@ app.whenReady().then(async () => {
   registerExportHandlers(db)
   registerSettingsHandlers(db)
   registerUserWordHandlers(db)
+  registerDictionaryHandlers()
   registerPythonHandlers(PYTHON_PORT)
   registerAIHandlers()
 

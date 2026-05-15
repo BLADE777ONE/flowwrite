@@ -33,6 +33,12 @@ interface UrbanCategory {
   stems?: string[]
 }
 
+interface ThesaurusLookupResult {
+  sinonimos: string[]
+  antonimos: string[]
+  source?: string[]
+}
+
 function normalize(word: string): string {
   return String(word || '')
     .toLowerCase()
@@ -272,17 +278,40 @@ async function fetchWiktionary(rawWord: string): Promise<{ sinonimos: string[]; 
   }
 }
 
+async function fetchLocalThesaurus(rawWord: string): Promise<ThesaurusLookupResult> {
+  try {
+    const flowAPI = (window as unknown as { flowAPI?: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> } }).flowAPI
+    if (!flowAPI) return { sinonimos: [], antonimos: [], source: [] }
+
+    const result = await flowAPI.invoke('dictionary:lookup', rawWord) as ThesaurusLookupResult
+    return {
+      sinonimos: Array.isArray(result?.sinonimos) ? result.sinonimos : [],
+      antonimos: Array.isArray(result?.antonimos) ? result.antonimos : [],
+      source: Array.isArray(result?.source) ? result.source : [],
+    }
+  } catch (err) {
+    console.error('[DictionaryService] Erro no lookup local DicSin/Lexico:', err)
+    return { sinonimos: [], antonimos: [], source: [] }
+  }
+}
+
 export async function getDictionaryData(rawWord: string): Promise<DictionaryResult> {
   if (!rawWord || rawWord.trim().length < 2) {
     return { girias: [], sinonimos: [], relacionados: [], antonimos: [], themes: [] }
   }
 
   const local = getUrbanEntry(rawWord)
-  const online = await fetchWiktionary(rawWord)
+  const [thesaurus, online] = await Promise.all([
+    fetchLocalThesaurus(rawWord),
+    fetchWiktionary(rawWord),
+  ])
 
   const giriaKeys = new Set(local.girias.map(normalize))
   const rawKey = normalize(rawWord)
-  const sinonimos = uniq(online.sinonimos)
+  const sinonimos = uniq([
+    ...thesaurus.sinonimos,
+    ...online.sinonimos,
+  ])
     .filter(item => !giriaKeys.has(normalize(item)))
     .filter(item => normalize(item) !== rawKey)
     .slice(0, 64)
@@ -298,7 +327,7 @@ export async function getDictionaryData(rawWord: string): Promise<DictionaryResu
     girias: local.girias,
     sinonimos,
     relacionados,
-    antonimos: uniq(online.antonimos).slice(0, 32),
+    antonimos: uniq([...thesaurus.antonimos, ...online.antonimos]).slice(0, 32),
     themes: local.themes,
   }
 
