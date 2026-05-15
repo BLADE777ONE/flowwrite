@@ -15,6 +15,20 @@ import { registerPythonHandlers } from './ipc/pythonHandlers'
 import { registerUserWordHandlers } from './ipc/userWordHandlers'
 import { registerAIHandlers } from './ipc/aiHandlers'
 
+function isBrokenPipe(error: unknown): boolean {
+  return error instanceof Error && (error as NodeJS.ErrnoException).code === 'EPIPE'
+}
+
+function ignoreBrokenPipe(stream: NodeJS.WriteStream): void {
+  stream.on('error', (error) => {
+    if (isBrokenPipe(error)) return
+    throw error
+  })
+}
+
+ignoreBrokenPipe(process.stdout)
+ignoreBrokenPipe(process.stderr)
+
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: BrowserWindow | null = null

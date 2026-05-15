@@ -11,7 +11,7 @@ delete env.ELECTRON_RUN_AS_NODE
 const electronExe = path.join(__dirname, '..', 'node_modules', 'electron', 'dist', 'electron.exe')
 
 const child = spawn(electronExe, ['.'], {
-  stdio: 'inherit',
+  stdio: 'ignore',
   env,
   cwd: path.join(__dirname, '..')
 })
