@@ -406,7 +406,7 @@
 
   .flow-map-tool .rhythm-panel {
     height: 100%;
-    min-height: 22rem;
+    min-height: 0;
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 0.75rem;
     overflow: hidden;
@@ -415,7 +415,7 @@
 
   .flow-map-tool .rhythm-panel.is-detail {
     height: 100%;
-    min-height: 22rem;
+    min-height: 0;
   }
 
   .rhythm-collapse-btn {
@@ -894,6 +894,27 @@
     background: rgba(168,85,247,0.10);
   }
 
+  .rhythm-line-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.42rem;
+  }
+
+  .rhythm-line-text {
+    min-width: 0;
+    color: rgba(248,250,252,0.9);
+    font-family: theme('fontFamily.mono');
+    font-size: 0.88rem;
+    font-weight: 720;
+    line-height: 1.38;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .rhythm-track {
     position: relative;
     flex: 1;
@@ -904,6 +925,12 @@
     background: #1A1A1A;
     overflow: hidden;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  .rhythm-line-body .rhythm-track,
+  .rhythm-line-body .rhythm-compact-track {
+    flex: 0 0 auto;
+    width: 100%;
   }
 
   .rhythm-compact-track {
@@ -1165,14 +1192,13 @@
   .flow-map-content {
     flex: 1;
     min-height: 0;
-    display: grid;
-    grid-template-columns: minmax(21rem, 0.95fr) minmax(28rem, 1.35fr);
-    gap: 1rem;
+    display: flex;
     padding: 1rem;
   }
 
-  .flow-map-lyrics,
   .flow-map-tool {
+    flex: 1;
+    min-width: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -1183,8 +1209,27 @@
   }
 
   .flow-map-tool {
-    gap: 0.75rem;
     padding: 0.85rem;
+  }
+
+  .flow-map-tool .rhythm-panel-header {
+    min-height: 5.8rem;
+  }
+
+  .flow-map-tool .rhythm-lines {
+    padding: 0.65rem 1rem 1rem;
+  }
+
+  .flow-map-tool .rhythm-panel.is-detail .rhythm-line {
+    min-height: 4.65rem;
+    padding: 0.55rem 0;
+  }
+
+  .flow-map-tool .rhythm-line-text {
+    color: #f8fafc;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    white-space: normal;
   }
 
   .flow-map-section-head {
@@ -1350,9 +1395,8 @@
   }
 
   @media (max-width: 1100px) {
-    .flow-map-content,
-    .flow-map-simple-guide {
-      grid-template-columns: 1fr;
+    .flow-map-content {
+      padding: 0.7rem;
     }
   }
 

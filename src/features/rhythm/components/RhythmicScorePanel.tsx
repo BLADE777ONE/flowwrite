@@ -7,6 +7,8 @@ interface RhythmicScorePanelProps {
   startBarIndex?: number
   activeBarIndex?: number
   playing?: boolean
+  showLineText?: boolean
+  initialMode?: 'compact' | 'detail'
 }
 
 type SlotOverrides = Record<string, number>
@@ -188,6 +190,7 @@ function RhythmLine({
   mode,
   playing,
   collapsed,
+  showLineText,
   onMove,
 }: {
   displayIndex: number
@@ -197,6 +200,7 @@ function RhythmLine({
   mode: ScoreViewMode
   playing: boolean
   collapsed: boolean
+  showLineText: boolean
   onMove: (lineIndex: number, note: RhythmSyllable, slot: number) => void
 }) {
   const filledSlots = new Set(map.syllables.map(note => note.slot))
@@ -212,46 +216,52 @@ function RhythmLine({
         {!collapsed && <small className={`rhythm-line-insight is-${insight.className}`}>{mode === 'detail' ? `${map.syllables.length} sil.` : insight.label}</small>}
       </div>
 
-      {!collapsed && mode === 'detail' && (
-        <div className="rhythm-track" data-slots-per-bar={map.slotsPerBar} style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
-          <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
-          {playing && <span className="rhythm-playhead" />}
-          <div className="rhythm-breath-row" aria-hidden="true">
-            {Array.from({ length: map.slotsPerBar }).map((_, slot) => (
-              <span key={slot} className={!filledSlots.has(slot) ? 'breath' : ''} />
-            ))}
-          </div>
-          {map.syllables.map(note => (
-            <SyllableNote
-              key={note.id}
-              lineIndex={sourceIndex}
-              note={note}
-              slotsPerBar={map.slotsPerBar}
-              collapsed={collapsed}
-              onMove={onMove}
-            />
-          ))}
-        </div>
-      )}
+      <div className="rhythm-line-body">
+        {!collapsed && showLineText && (
+          <p className="rhythm-line-text">{map.lineText}</p>
+        )}
 
-      {!collapsed && mode === 'compact' && (
-        <div className="rhythm-compact-track" style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
-          <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
-          {playing && <span className="rhythm-playhead" />}
-          <div className="rhythm-compact-notes">
+        {!collapsed && mode === 'detail' && (
+          <div className="rhythm-track" data-slots-per-bar={map.slotsPerBar} style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
+            <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
+            {playing && <span className="rhythm-playhead" />}
+            <div className="rhythm-breath-row" aria-hidden="true">
+              {Array.from({ length: map.slotsPerBar }).map((_, slot) => (
+                <span key={slot} className={!filledSlots.has(slot) ? 'breath' : ''} />
+              ))}
+            </div>
             {map.syllables.map(note => (
-              <span
+              <SyllableNote
                 key={note.id}
-                className={note.startsBeat ? 'strong' : ''}
-                style={{
-                  gridColumn: `${note.slot + 1} / span ${Math.max(1, note.durationSlots)}`,
-                }}
-                title={`${note.text} - slot ${note.slot + 1}`}
+                lineIndex={sourceIndex}
+                note={note}
+                slotsPerBar={map.slotsPerBar}
+                collapsed={collapsed}
+                onMove={onMove}
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
+
+        {!collapsed && mode === 'compact' && (
+          <div className="rhythm-compact-track" style={{ '--rhythm-slots': map.slotsPerBar } as CSSProperties}>
+            <GridSlots slotsPerBar={map.slotsPerBar} beatStep={beatStep} />
+            {playing && <span className="rhythm-playhead" />}
+            <div className="rhythm-compact-notes">
+              {map.syllables.map(note => (
+                <span
+                  key={note.id}
+                  className={note.startsBeat ? 'strong' : ''}
+                  style={{
+                    gridColumn: `${note.slot + 1} / span ${Math.max(1, note.durationSlots)}`,
+                  }}
+                  title={`${note.text} - slot ${note.slot + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -296,9 +306,11 @@ export function RhythmicScorePanel({
   startBarIndex = 0,
   activeBarIndex = startBarIndex,
   playing = false,
+  showLineText = false,
+  initialMode = 'compact',
 }: RhythmicScorePanelProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const [mode, setMode] = useState<ScoreViewMode>('compact')
+  const [mode, setMode] = useState<ScoreViewMode>(initialMode)
   const [pocket, setPocket] = useState<RhythmPocket>('straight16')
   const [showHelp, setShowHelp] = useState(false)
   const [overrides, setOverrides] = useState<SlotOverrides>({})
@@ -438,6 +450,7 @@ export function RhythmicScorePanel({
                   mode={mode}
                   playing={playing}
                   collapsed={collapsed}
+                  showLineText={showLineText}
                   onMove={handleMove}
                 />
               </div>
