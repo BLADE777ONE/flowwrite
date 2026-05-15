@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -79,6 +79,7 @@ function buildSongMetadata(song: Song | null, patch: SongMetadata): string {
 
 export default function App() {
   const [lyrics, setLyrics] = useState('')
+  const [analysisLyrics, setAnalysisLyrics] = useState('')
   const [title, setTitle] = useState('')
   const [selectedWord, setSelectedWord] = useState('')
   const [activeTab, setActiveTab] = useState<ActiveToolTab>('metrics')
@@ -100,6 +101,25 @@ export default function App() {
   const pendingContentRef = useRef<string | null>(null)
   const rawWordRef = useRef('')
   const dictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestEditorTextRef = useRef('')
+
+  function syncActiveBarIndex(editor: Editor) {
+    const nextIndex = getActiveBarIndex(editor)
+    setActiveBarIndex(current => current === nextIndex ? current : nextIndex)
+  }
+
+  function scheduleEditorAnalysis(editor: Editor, text: string) {
+    latestEditorTextRef.current = text
+    if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current)
+
+    analysisTimerRef.current = setTimeout(() => {
+      setLyrics(latestEditorTextRef.current)
+      setAnalysisLyrics(latestEditorTextRef.current)
+      setSegments(extractTimelineSegments(editor))
+      syncActiveBarIndex(editor)
+    }, 260)
+  }
 
   const editor = useEditor({
     extensions: [
@@ -112,16 +132,14 @@ export default function App() {
     content: '',
     onUpdate: ({ editor }) => {
       if (isLoadingRef.current) return
-      setLyrics(editor.getText({ blockSeparator: '\n' }))
-      setSegments(extractTimelineSegments(editor))
-      setActiveBarIndex(getActiveBarIndex(editor))
+      const text = editor.getText({ blockSeparator: '\n' })
+      scheduleEditorAnalysis(editor, text)
     },
     onSelectionUpdate: ({ editor }) => {
       const { raw, normalized } = extractWordFromSelection(editor)
-      console.log('[App] Palavra extraída:', raw, '| normalizada:', normalized)
       rawWordRef.current = raw.toLowerCase()
-      setSelectedWord(normalized)
-      setActiveBarIndex(getActiveBarIndex(editor))
+      setSelectedWord(current => current === normalized ? current : normalized)
+      syncActiveBarIndex(editor)
     },
   })
 
@@ -130,15 +148,28 @@ export default function App() {
     const content = pendingContentRef.current
     pendingContentRef.current = null
     editor.commands.setContent(storedContentToEditorHtml(content), false)
+    const plainText = storedContentToPlainText(content)
+    latestEditorTextRef.current = plainText
+    setAnalysisLyrics(plainText)
     setSegments(extractTimelineSegments(editor))
   }, [editor])
 
-  const lines = lyrics.split('\n')
-  const contentLines = lines.map(line => line.trim()).filter(Boolean)
+  const lines = useMemo(() => analysisLyrics.split('\n'), [analysisLyrics])
+  const contentLines = useMemo(() => lines.map(line => line.trim()).filter(Boolean), [lines])
   const safeActiveBarIndex = Math.min(activeBarIndex, Math.max(contentLines.length - 1, 0))
   const activeBlockStart = Math.floor(safeActiveBarIndex / 4) * 4
-  const activeBlockLines = contentLines.slice(activeBlockStart, activeBlockStart + 4)
-  const scopedLines = activeBlockLines.length > 0 ? activeBlockLines : contentLines.slice(0, 4)
+  const scopedLines = useMemo(() => {
+    const activeBlockLines = contentLines.slice(activeBlockStart, activeBlockStart + 4)
+    return activeBlockLines.length > 0 ? activeBlockLines : contentLines.slice(0, 4)
+  }, [activeBlockStart, contentLines])
+
+  useEffect(() => {
+    return () => {
+      if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current)
+      if (dictTimerRef.current) clearTimeout(dictTimerRef.current)
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (activeTab !== 'dictionary') return
@@ -229,6 +260,8 @@ export default function App() {
       setCurrentSong(null)
       setTitle('')
       setLyrics('')
+      setAnalysisLyrics('')
+      latestEditorTextRef.current = ''
       editor?.commands.clearContent()
     }
   }
@@ -244,6 +277,8 @@ export default function App() {
       setCurrentSong(null)
       setTitle('')
       setLyrics('')
+      setAnalysisLyrics('')
+      latestEditorTextRef.current = ''
       editor?.commands.clearContent(false)
     }
   }
@@ -256,7 +291,10 @@ export default function App() {
     setBpm(parseSongMetadata(song).bpm ?? 90)
 
     const content = song.content ?? ''
-    setLyrics(storedContentToPlainText(content))
+    const plainText = storedContentToPlainText(content)
+    latestEditorTextRef.current = plainText
+    setLyrics(plainText)
+    setAnalysisLyrics(plainText)
     if (editor) {
       editor.commands.setContent(storedContentToEditorHtml(content), false)
       setSegments(extractTimelineSegments(editor))
@@ -356,6 +394,8 @@ export default function App() {
         setCurrentSong(null)
         setTitle('')
         setLyrics('')
+        setAnalysisLyrics('')
+        latestEditorTextRef.current = ''
         editor?.commands.clearContent()
       }
     }

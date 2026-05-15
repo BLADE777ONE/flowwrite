@@ -155,8 +155,8 @@ export const RhymeHighlightExtension = Extension.create({
         key: rhymeHighlightKey,
 
         state: {
-          init(_config, state) {
-            return buildDecorations(state.doc)
+          init() {
+            return DecorationSet.empty
           },
           apply(tr, old) {
             const meta = tr.getMeta(rhymeHighlightKey)

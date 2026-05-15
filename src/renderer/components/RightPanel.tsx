@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useMemo, type ReactNode } from 'react'
 import {
   analyzeRhymes,
   buildRhymeFamilies,
@@ -277,7 +277,8 @@ function FlowMeterDial({
 function MetricsTab({ lines }: { lines: string[] }) {
   const { bpm } = useEditorStore()
   const [mode, setMode] = useState<MetricsAnalysisMode>('rap')
-  const analysis = analyzeMetrics(lines.join('\n'), bpm, mode)
+  const text = useMemo(() => lines.join('\n'), [lines])
+  const analysis = useMemo(() => analyzeMetrics(text, bpm, mode), [text, bpm, mode])
   const profileHint = METRIC_MODE_OPTIONS.find(option => option.id === mode)?.hint ?? ''
 
   if (analysis.lines.length === 0) {
@@ -525,9 +526,7 @@ function RhymeSchemePanel({ analysis }: { analysis: RhymeAnalysis }) {
 }
 
 function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
-  if (analysis.chains.length === 0) return null
-
-  const chainData = analysis.chains.map((chain) => {
+  const chainData = useMemo(() => analysis.chains.map((chain) => {
     const chainMatches = analysis.matches.filter(
       (m) => chain.lines.includes(m.sourceLine) && chain.lines.includes(m.targetLine),
     )
@@ -547,7 +546,9 @@ function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
       : []
 
     return { chain, strength, avgScore, predictable, upgrades }
-  })
+  }), [analysis])
+
+  if (analysis.chains.length === 0) return null
 
   return (
     <div className="mb-5">
@@ -704,14 +705,15 @@ function RhymeMovePanel({ moves, onInsertWord }: { moves: RhymeMove[]; onInsertW
 
 function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string; lines: string[]; onInsertWord: (word: string) => void }) {
   const [activeLane, setActiveLane] = useState<RhymeLaneFilter>('all')
-  const rhymes = findRhymesTyped(selectedWord, 140)
-  const analysis = analyzeRhymes(lines.join('\n'))
-  const families = buildRhymeFamilies(rhymes, 4)
-  const moves = buildRhymeMoves(selectedWord, rhymes, 4)
-  const grouped = rhymes.reduce<Record<RhymeSuggestion['lane'], RhymeSuggestion[]>>((acc, rhyme) => {
+  const text = useMemo(() => lines.join('\n'), [lines])
+  const rhymes = useMemo(() => findRhymesTyped(selectedWord, 140), [selectedWord])
+  const analysis = useMemo(() => analyzeRhymes(text), [text])
+  const families = useMemo(() => buildRhymeFamilies(rhymes, 4), [rhymes])
+  const moves = useMemo(() => buildRhymeMoves(selectedWord, rhymes, 4), [selectedWord, rhymes])
+  const grouped = useMemo(() => rhymes.reduce<Record<RhymeSuggestion['lane'], RhymeSuggestion[]>>((acc, rhyme) => {
     acc[rhyme.lane].push(rhyme)
     return acc
-  }, { forte: [], criativa: [], inclinada: [], frase: [], simples: [] })
+  }, { forte: [], criativa: [], inclinada: [], frase: [], simples: [] }), [rhymes])
   const visibleLanes = (['forte', 'criativa', 'frase', 'inclinada', 'simples'] as RhymeSuggestion['lane'][])
     .filter(lane => activeLane === 'all' || activeLane === lane)
   const activeFilter = rhymeLaneFilters.find(filter => filter.id === activeLane) ?? rhymeLaneFilters[0]
@@ -956,7 +958,7 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
       dictResult.themes.length > 0
     ),
   )
-  const rhymeIdeas = selectedWord ? findRhymesTyped(selectedWord, 18) : []
+  const rhymeIdeas = useMemo(() => selectedWord ? findRhymesTyped(selectedWord, 18) : [], [selectedWord])
 
   return (
     <div>
@@ -1219,8 +1221,16 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
 
 function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | 'onInsertLine'>) {
   const { bpm } = useEditorStore()
-  const text = lines.join('\n').trim()
-  const contentLines = lines.map(line => line.trim()).filter(Boolean)
+  const text = useMemo(() => lines.join('\n').trim(), [lines])
+  const contentLines = useMemo(() => lines.map(line => line.trim()).filter(Boolean), [lines])
+  const rhymeAnalysis = useMemo(() => contentLines.length >= 2 ? analyzeRhymes(text) : null, [contentLines.length, text])
+  const metricsAnalysis = useMemo(() => contentLines.length >= 2 ? analyzeMetrics(text, bpm) : null, [contentLines.length, text, bpm])
+  const suggestion = useMemo(() => (
+    rhymeAnalysis && metricsAnalysis
+      ? generateGhostwriterSuggestion(text, rhymeAnalysis, metricsAnalysis)
+      : null
+  ), [text, rhymeAnalysis, metricsAnalysis])
+  const lastBlock = rhymeAnalysis?.schemeBlocks.at(-1)
 
   if (contentLines.length < 2) {
     return (
@@ -1235,11 +1245,6 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
       </div>
     )
   }
-
-  const rhymeAnalysis = analyzeRhymes(text)
-  const metricsAnalysis = analyzeMetrics(text, bpm)
-  const suggestion = generateGhostwriterSuggestion(text, rhymeAnalysis, metricsAnalysis)
-  const lastBlock = rhymeAnalysis.schemeBlocks.at(-1)
 
   if (!suggestion) {
     return (

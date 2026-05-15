@@ -143,7 +143,7 @@ export const LineGutterExtension = Extension.create({
       key: gutterKey,
 
       state: {
-        init(_cfg, state) { return buildDecorations(state.doc) },
+        init() { return DecorationSet.empty },
         apply(tr, old) {
           const meta = tr.getMeta(gutterKey)
           if (meta !== undefined) return meta as DecorationSet
@@ -184,13 +184,15 @@ export const LineGutterExtension = Extension.create({
       props: {
         decorations(state) {
           const { selection } = state
+          const { $from } = selection
           const decos: Decoration[] = []
-          state.doc.forEach((node, offset) => {
-            if (node.type.name !== 'paragraph') return
-            if (selection.from >= offset && selection.from <= offset + node.nodeSize) {
-              decos.push(Decoration.node(offset, offset + node.nodeSize, { class: 'is-active-line' }))
-            }
-          })
+
+          for (let depth = $from.depth; depth > 0; depth--) {
+            if ($from.node(depth).type.name !== 'paragraph') continue
+            decos.push(Decoration.node($from.before(depth), $from.after(depth), { class: 'is-active-line' }))
+            break
+          }
+
           return DecorationSet.create(state.doc, decos)
         },
       },

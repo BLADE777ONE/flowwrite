@@ -1,5 +1,6 @@
 import { EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/core'
+import { useMemo } from 'react'
 import { analyzeMetrics } from '../../features/metrics/MetricsService'
 import { analyzeRhymes } from '../../features/rhyme/RhymeService'
 import { useEditorStore } from '../../features/editor/editorStore'
@@ -12,19 +13,17 @@ interface LyricsEditorProps {
 }
 
 function EditorStudioStrip({
-  lyrics,
   scopedLines,
   activeBlockStart,
 }: {
-  lyrics: string
   scopedLines: string[]
   activeBlockStart: number
 }) {
   const { bpm } = useEditorStore()
-  const contentLines = scopedLines.map(line => line.trim()).filter(Boolean)
-  const scopedText = contentLines.join('\n')
-  const metrics = analyzeMetrics(scopedText, bpm)
-  const rhyme = analyzeRhymes(scopedText)
+  const contentLines = useMemo(() => scopedLines.map(line => line.trim()).filter(Boolean), [scopedLines])
+  const scopedText = useMemo(() => contentLines.join('\n'), [contentLines])
+  const metrics = useMemo(() => analyzeMetrics(scopedText, bpm), [scopedText, bpm])
+  const rhyme = useMemo(() => analyzeRhymes(scopedText), [scopedText])
   const currentBlock = Math.floor(activeBlockStart / 4) + 1
   const activeScheme = rhyme.schemeBlocks.at(-1)?.pattern ?? '----'
   const averageSyllables = metrics.averageSyllables || 0
@@ -69,7 +68,7 @@ export function LyricsEditor({ editor, lyrics, scopedLines, activeBlockStart }: 
             ))}
           </div>
         </div>
-        <EditorStudioStrip lyrics={lyrics} scopedLines={scopedLines} activeBlockStart={activeBlockStart} />
+        <EditorStudioStrip scopedLines={scopedLines} activeBlockStart={activeBlockStart} />
         <EditorContent editor={editor} />
       </div>
     </main>
