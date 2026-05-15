@@ -267,6 +267,118 @@ function RhythmLegend() {
   )
 }
 
+function FlowMapGuideModal({
+  lines,
+  selectedPocket,
+  onClose,
+  onSetMode,
+}: {
+  lines: Array<{ sourceIndex: number; map: RhythmLineMap }>
+  selectedPocket: { label: string; hint: string; markers: string[] }
+  onClose: () => void
+  onSetMode: (mode: ScoreViewMode) => void
+}) {
+  const demoLine = lines[0]?.map ?? mapLineToRhythm('no corre da noite eu vim buscar meu placo', 128)
+  const insights = lines.map(line => getRhythmInsight(line.map))
+  const fullBars = insights.filter(item => item.className === 'hot').length
+  const breathBars = insights.filter(item => item.className === 'cool').length
+  const anchoredBars = insights.filter(item => item.className === 'good').length
+
+  return (
+    <div className="flow-guide-backdrop" role="dialog" aria-modal="true" aria-label="Guia do Mapa de Flow">
+      <div className="flow-guide-modal">
+        <header className="flow-guide-header">
+          <div>
+            <p className="flow-guide-kicker">Guia visual</p>
+            <h2>Mapa de Flow</h2>
+            <p>Uma tela simples para entender onde sua letra respira, acelera e encaixa no beat.</p>
+          </div>
+          <button type="button" onClick={onClose} className="flow-guide-close">Fechar</button>
+        </header>
+
+        <div className="flow-guide-body editor-scroll">
+          <section className="flow-guide-hero">
+            <div>
+              <p className="flow-guide-label">Ideia principal</p>
+              <h3>Nao e partitura. E um raio-x do pocket.</h3>
+              <p>
+                Cada linha representa uma barra da letra. Os blocos coloridos mostram ataques vocais:
+                silabas ou pedacos de palavra que provavelmente caem no compasso.
+              </p>
+            </div>
+            <div className="flow-guide-summary">
+              <span>{lines.length || 1} barras lidas</span>
+              <span>{selectedPocket.label}</span>
+              <span>{anchoredBars} ancoradas</span>
+              <span>{fullBars} cheias</span>
+              <span>{breathBars} com respiro</span>
+            </div>
+          </section>
+
+          <section className="flow-guide-section">
+            <p className="flow-guide-label">Como ler em 4 passos</p>
+            <div className="flow-guide-steps">
+              <div><strong>1</strong><span>Leia da esquerda para direita como se fosse um compasso.</span></div>
+              <div><strong>2</strong><span>As linhas verticais mais fortes sao os tempos: 1, 2, 3 e 4.</span></div>
+              <div><strong>3</strong><span>Os blocos coloridos sao entradas vocais. Muitos blocos juntos indicam barra cheia.</span></div>
+              <div><strong>4</strong><span>Espacos vazios sao lugares bons para respirar, pausar ou deixar bounce.</span></div>
+            </div>
+          </section>
+
+          <section className="flow-guide-section">
+            <div className="flow-guide-section-head">
+              <div>
+                <p className="flow-guide-label">Exemplo visual</p>
+                <h3>{demoLine.lineText}</h3>
+              </div>
+              <span>{selectedPocket.hint}</span>
+            </div>
+            <div className="flow-guide-demo">
+              <BeatHeader markers={selectedPocket.markers} />
+              <RhythmLine
+                displayIndex={0}
+                sourceIndex={0}
+                map={demoLine}
+                active
+                mode="detail"
+                playing={false}
+                collapsed={false}
+                onMove={() => {}}
+              />
+            </div>
+          </section>
+
+          <section className="flow-guide-grid">
+            <div className="flow-guide-card">
+              <p className="flow-guide-label">Diagnosticos</p>
+              <ul>
+                <li><b>respiro</b> pouca silaba, bom para pausa ou resposta.</li>
+                <li><b>solto</b> mais swingado, pode exigir mais interpretacao.</li>
+                <li><b>ancorado</b> cai bem nos tempos fortes, tende a ser facil de cantar.</li>
+                <li><b>cheio</b> muita informacao, pode precisar cortar ou acelerar.</li>
+              </ul>
+            </div>
+            <div className="flow-guide-card">
+              <p className="flow-guide-label">O que fazer</p>
+              <ul>
+                <li>Use <b>Ler</b> para entender o desenho geral sem mexer em nada.</li>
+                <li>Use <b>Ajustar</b> para arrastar silabas e testar outro encaixe.</li>
+                <li>Troque o pocket para comparar rap reto com triple flow.</li>
+                <li>Se a barra estiver cheia, tente remover palavra fraca ou criar pausa.</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <footer className="flow-guide-footer">
+          <button type="button" onClick={() => { onSetMode('compact'); onClose() }}>Voltar lendo</button>
+          <button type="button" onClick={() => { onSetMode('detail'); onClose() }} className="primary">Abrir modo Ajustar</button>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
 export function RhythmicScorePanel({
   lines,
   bpm,
@@ -278,6 +390,7 @@ export function RhythmicScorePanel({
   const [mode, setMode] = useState<ScoreViewMode>('compact')
   const [pocket, setPocket] = useState<RhythmPocket>('straight16')
   const [showHelp, setShowHelp] = useState(true)
+  const [showGuide, setShowGuide] = useState(false)
   const [overrides, setOverrides] = useState<SlotOverrides>({})
   const selectedPocket = POCKETS.find(item => item.id === pocket) ?? POCKETS[0]
 
@@ -336,6 +449,14 @@ export function RhythmicScorePanel({
               title="Entender o Mapa de Flow"
             >
               ?
+            </button>
+            <button
+              type="button"
+              className="rhythm-open-guide-btn"
+              onClick={() => setShowGuide(true)}
+              title="Abrir guia completo do Mapa de Flow"
+            >
+              Guia
             </button>
             <div className="rhythm-view-toggle" role="group" aria-label="Modo do Mapa de Flow">
               <button
@@ -422,6 +543,15 @@ export function RhythmicScorePanel({
           })
         )}
       </div>
+
+      {showGuide && (
+        <FlowMapGuideModal
+          lines={rhythmLines}
+          selectedPocket={selectedPocket}
+          onClose={() => setShowGuide(false)}
+          onSetMode={setMode}
+        />
+      )}
     </aside>
   )
 }
