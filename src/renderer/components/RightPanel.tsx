@@ -525,6 +525,50 @@ function RhymeSchemePanel({ analysis }: { analysis: RhymeAnalysis }) {
   )
 }
 
+function RhymeReadingGuide() {
+  return (
+    <section className="mb-4 rounded-md border border-cyan-800/35 bg-cyan-950/10 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] text-cyan-300 uppercase tracking-wider font-black">Como ler as rimas</p>
+          <p className="mt-1 text-[10px] leading-snug text-gray-500">
+            O app agrupa palavras por som, nao apenas por escrita. Cores iguais pertencem a mesma familia sonora.
+          </p>
+        </div>
+        <span className="rounded border border-cyan-700/40 bg-black/25 px-2 py-1 font-mono text-[10px] text-cyan-200">
+          guia
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded border border-white/[0.07] bg-black/20 p-2">
+          <span className="inline-block rounded bg-purple-500/25 px-1.5 py-0.5 text-xs font-mono text-purple-100 border-b-2 border-purple-400">
+            vida
+          </span>
+          <p className="mt-2 text-[10px] leading-snug text-gray-500">
+            Linha continua: rima no fim da barra.
+          </p>
+        </div>
+        <div className="rounded border border-white/[0.07] bg-black/20 p-2">
+          <span className="inline-block rounded bg-blue-500/25 px-1.5 py-0.5 text-xs font-mono text-blue-100 border-b-2 border-dotted border-blue-400">
+            mente
+          </span>
+          <p className="mt-2 text-[10px] leading-snug text-gray-500">
+            Linha pontilhada: rima interna.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded border border-white/[0.07] bg-black/20 p-2">
+        <p className="font-mono text-sm tracking-[0.18em] text-white">A B A B</p>
+        <p className="mt-1 text-[10px] leading-snug text-gray-500">
+          Letras mostram o desenho por final de linha: AABB, ABAB, ABCB e variacoes. Duas quebras de linha separam uma nova estrofe.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function ChainAnalysisPanel({ analysis }: { analysis: RhymeAnalysis }) {
   const chainData = useMemo(() => analysis.chains.map((chain) => {
     const chainMatches = analysis.matches.filter(
@@ -722,6 +766,7 @@ function RhymesTab({ selectedWord, lines, onInsertWord }: { selectedWord: string
 
   return (
     <div>
+      <RhymeReadingGuide />
       <RhymeSchemePanel analysis={analysis} />
       <ChainAnalysisPanel analysis={analysis} />
 

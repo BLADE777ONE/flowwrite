@@ -53,9 +53,19 @@ const steps: OnboardingStep[] = [
     eyebrow: 'Editor central',
     title: 'Escreva suas barras com leitura visual',
     description:
-      'Digite como em um bloco premium. O editor acompanha linhas, separa blocos e destaca rimas automaticamente.',
+      'Digite como em um bloco premium. O editor acompanha linhas, separa blocos e destaca rimas automaticamente: linha cheia para final de barra, pontilhado para rima interna.',
     selector: '[data-onboarding="lyrics-editor"]',
     preferredSide: 'right',
+  },
+  {
+    id: 'rhymes',
+    eyebrow: 'Rimas visuais',
+    title: 'Entenda as cores antes de rimar',
+    description:
+      'Cores iguais indicam a mesma familia sonora. No painel Rimas, A/B/C mostram o desenho da estrofe, como AABB, ABAB ou ABCB. Duas quebras de linha iniciam uma nova estrofe.',
+    selector: '[data-onboarding="right-panel"]',
+    preferredSide: 'left',
+    toolTab: 'rhymes',
   },
   {
     id: 'rhythm',

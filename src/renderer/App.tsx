@@ -362,6 +362,11 @@ export default function App() {
     }
   }
 
+  function openHelpTour() {
+    setActiveTab('rhymes')
+    setShowOnboarding(true)
+  }
+
   async function handleOnboardingCreateProject() {
     if (projects.length === 0) {
       await handleNewProject()
@@ -425,6 +430,7 @@ export default function App() {
           onTitleChange={setTitle}
           onSave={handleSave}
           onDelete={handleDelete}
+          onOpenHelp={openHelpTour}
         />
         <LyricsEditor
           editor={editor}

@@ -11,6 +11,7 @@ interface EditorTopBarProps {
   onTitleChange: (title: string) => void
   onSave: () => void
   onDelete: () => void
+  onOpenHelp: () => void
 }
 
 export function EditorTopBar({
@@ -21,6 +22,7 @@ export function EditorTopBar({
   onTitleChange,
   onSave,
   onDelete,
+  onOpenHelp,
 }: EditorTopBarProps) {
   const { bpm, setBpm, metronomePlaying, toggleMetronomePlaying } = useEditorStore()
   const { beat, flash } = useMetronome(bpm, metronomePlaying)
@@ -113,6 +115,15 @@ export function EditorTopBar({
       </div>
 
       <SectionToolbar editor={editor} />
+
+      <button
+        type="button"
+        onClick={onOpenHelp}
+        className="h-8 w-8 rounded-md border border-cyan-700/40 bg-cyan-950/20 text-xs font-black text-cyan-200 transition hover:border-cyan-400/70 hover:bg-cyan-900/30"
+        title="Abrir guia rapido do OBloco"
+      >
+        ?
+      </button>
 
       {/* Status de salvamento */}
       <div className={`hidden xl:flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-black rounded-full px-2.5 py-1 border ${

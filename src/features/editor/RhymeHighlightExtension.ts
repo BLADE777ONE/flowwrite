@@ -117,6 +117,7 @@ function buildDecorations(doc: ProseMirrorNode): DecorationSet {
           decorations.push(
             Decoration.inline(range.from, range.to, {
               style: `background:${c.bg};border-bottom:2px solid ${c.border};border-radius:3px;padding:0 2px;`,
+              title: 'Rima final: fechamento de linha desta familia sonora.',
             }),
           )
         }
@@ -131,6 +132,7 @@ function buildDecorations(doc: ProseMirrorNode): DecorationSet {
         decorations.push(
           Decoration.inline(range.from, range.to, {
             style: `background:${c.bg};border-bottom:2px dotted ${c.border};border-radius:3px;padding:0 2px;`,
+            title: 'Rima interna: palavra no meio da linha que conversa com uma familia sonora da estrofe.',
           }),
         )
       }
