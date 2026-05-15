@@ -19,6 +19,15 @@ interface EditorState {
   autosaveCount: number          // conta autosaves para disparar DNA update
   rightPanelCollapsed: boolean
 
+  // Palavra selecionada e estado de exibição (para RightPanel)
+  selectedWord: string
+  selectedWordRaw: string
+  scopedLines: string[]
+  activeBarIndex: number
+  activeBlockStart: number
+  insertWordFn: ((word: string) => void) | null
+  insertLineFn: ((line: string) => void) | null
+
   setCurrentSong: (song: Song | null) => void
   updateContent: (content: string) => void
   setSections: (sections: Section[]) => void
@@ -35,6 +44,10 @@ interface EditorState {
   toggleMetronomePlaying: () => void
   incrementAutosaveCount: () => void
   toggleRightPanel: () => void
+
+  setSelectedWord: (word: string, raw: string) => void
+  setEditorDisplayState: (lines: string[], barIdx: number) => void
+  registerInsertCallbacks: (word: (w: string) => void, line: (l: string) => void) => void
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -51,6 +64,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   metronomePlaying: false,
   autosaveCount: 0,
   rightPanelCollapsed: false,
+
+  selectedWord: '',
+  selectedWordRaw: '',
+  scopedLines: [],
+  activeBarIndex: 0,
+  activeBlockStart: 0,
+  insertWordFn: null,
+  insertLineFn: null,
 
   setCurrentSong: (song) => set({
     currentSong: song,
@@ -88,4 +109,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   toggleMetronomePlaying: () => set(s => ({ metronomePlaying: !s.metronomePlaying })),
   incrementAutosaveCount: () => set(s => ({ autosaveCount: s.autosaveCount + 1 })),
   toggleRightPanel: () => set(s => ({ rightPanelCollapsed: !s.rightPanelCollapsed })),
+
+  setSelectedWord: (word, raw) => set({ selectedWord: word, selectedWordRaw: raw }),
+
+  setEditorDisplayState: (lines, barIdx) => {
+    const blockStart = Math.floor(barIdx / 4) * 4
+    const scoped = lines.slice(blockStart, blockStart + 4)
+    set({
+      scopedLines: scoped.length > 0 ? scoped : lines.slice(0, 4),
+      activeBarIndex: barIdx,
+      activeBlockStart: blockStart,
+    })
+  },
+
+  registerInsertCallbacks: (word, line) => set({ insertWordFn: word, insertLineFn: line }),
 }))

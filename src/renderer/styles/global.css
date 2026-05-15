@@ -69,7 +69,8 @@
   .tiptap-editor .ProseMirror {
     background:
       linear-gradient(90deg, transparent 0 3.95rem, rgba(0,229,255,0.07) 3.95rem 4.02rem, transparent 4.02rem),
-      repeating-linear-gradient(180deg, transparent 0 2.35rem, rgba(255,255,255,0.025) 2.35rem 2.42rem);
+      repeating-linear-gradient(180deg, transparent 0 2.35rem, rgba(255,255,255,0.025) 2.35rem 2.42rem),
+      #09090d;
     color: #e2e0e0;
     @apply outline-none font-mono text-[18px] leading-[1.9];
     counter-reset: lyric-line;

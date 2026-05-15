@@ -57,6 +57,7 @@ const USER_WORD_CHANNELS = [
 
 const AI_CHANNELS = [
   'ai:analyzeFlow',
+  'ai:suggest',
 ] as const
 
 // Python analysis server

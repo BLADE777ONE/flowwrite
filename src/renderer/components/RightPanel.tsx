@@ -14,6 +14,7 @@ import { getRhymeStrength, getPredictableEndingLabel, type RhymeStrength } from 
 import { generateGhostwriterSuggestion } from '../../features/insights/GhostwriterService'
 import type { FlowSpeed, LineMetrics, MetricsAnalysisMode } from '../../shared/types/Metrics'
 import type { DictionaryResult } from '../../features/dictionary/DictionaryService'
+import type { LyricAssistantAction, LyricAssistantResult } from '../../features/ai/types'
 import type { ActiveToolTab } from '../types'
 import type { RhymeAnalysis, RhymeSchemeBlock } from '../../shared/types/Rhyme'
 
@@ -1150,32 +1151,52 @@ function DictionaryTab({ selectedWord, dictResult, dictLoading, onInsertWord }: 
   )
 }
 
-function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
+const ASSISTANT_ACTIONS: Array<{ id: LyricAssistantAction; label: string; hint: string }> = [
+  { id: 'analyze_flow', label: 'Analisar', hint: 'Diagnostico de flow, respiracao e BPM.' },
+  { id: 'improve_bar', label: 'Melhorar barra', hint: 'Sugere ajuste na linha ativa.' },
+  { id: 'internal_rhyme', label: 'Rima interna', hint: 'Procura ecos no meio da barra.' },
+  { id: 'complete_verse', label: 'Completar', hint: 'Cria caminhos para a proxima linha.' },
+  { id: 'explain_rhyme', label: 'Explicar rima', hint: 'Traduz o desenho AABB/ABCB.' },
+  { id: 'trap_variation', label: 'Trap/Plug', hint: 'Sugere mais bounce e espaco.' },
+]
+
+function AIFlowAnalysisBox({ text, bpm, selectedWord, activeLineIndex, onInsertLine }: { text: string; bpm: number; selectedWord: string; activeLineIndex: number; onInsertLine: (line: string) => void }) {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState('')
+  const [result, setResult] = useState<LyricAssistantResult | null>(null)
+  const [error, setError] = useState('')
   const [expanded, setExpanded] = useState(false)
   const [showFullResult, setShowFullResult] = useState(false)
+  const [action, setAction] = useState<LyricAssistantAction>('analyze_flow')
   const hasText = text.trim().length >= 8
-  const aiEnabled = import.meta.env.VITE_AI_FLOW_ENABLED === 'true'
+  const activeLine = useMemo(() => {
+    const contentLines = text.split('\n').map(line => line.trim()).filter(Boolean)
+    return contentLines[Math.max(0, Math.min(activeLineIndex, contentLines.length - 1))] || contentLines.at(-1) || ''
+  }, [text, activeLineIndex])
 
-  async function handleAnalyzeFlow() {
+  async function handleAnalyzeFlow(nextAction: LyricAssistantAction = action) {
     if (!hasText || !window.flowAPI) return
+    setAction(nextAction)
     setLoading(true)
-    setResult('')
+    setResult(null)
+    setError('')
     setExpanded(false)
     setShowFullResult(false)
     try {
-      const response = await window.flowAPI.invoke('ai:analyzeFlow', {
-        letraUsuario: text,
-        bpmAtual: bpm,
+      const response = await window.flowAPI.invoke('ai:suggest', {
+        action: nextAction,
+        text,
+        bpm,
+        selectedWord,
+        activeLine,
+        activeLineIndex,
       })
-      setResult(String(response || 'Não veio resposta da IA agora.'))
+      setResult(response as LyricAssistantResult)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error || '')
       if (message.includes('Canal IPC não autorizado') || message.includes('No handler registered')) {
-        setResult('O módulo de IA foi atualizado, mas o app precisa ser reiniciado para carregar o canal novo.')
+        setError('O modulo de IA foi atualizado, mas o app precisa ser reiniciado para carregar o canal novo.')
       } else {
-        setResult('Sinal do estúdio caiu. Verifique sua conexão.')
+        setError('Sinal do estudio caiu. Verifique sua conexao.')
       }
     } finally {
       setLoading(false)
@@ -1190,25 +1211,46 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
           <p className="text-[10px] text-gray-500 mt-1">Análise do bloco atual com BPM {bpm}.</p>
         </div>
         <span className="rounded border border-cyan-700/40 bg-black/25 px-2 py-1 text-[10px] font-mono text-cyan-200">
-          beta
+          token smart
         </span>
+      </div>
+
+      <div className="mb-2 grid grid-cols-2 gap-1.5">
+        {ASSISTANT_ACTIONS.map(item => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => handleAnalyzeFlow(item.id)}
+            disabled={!hasText || loading}
+            title={item.hint}
+            className={`rounded-md border px-2 py-2 text-[10px] font-black uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-40 ${
+              action === item.id
+                ? 'border-cyan-300/70 bg-cyan-500/20 text-cyan-100'
+                : 'border-cyan-800/35 bg-cyan-950/10 text-cyan-300 hover:border-cyan-500/60 hover:bg-cyan-500/10'
+            }`}
+          >
+            {loading && action === item.id ? 'Pensando...' : item.label}
+          </button>
+        ))}
       </div>
 
       <button
         type="button"
-        onClick={handleAnalyzeFlow}
-        disabled={!aiEnabled || !hasText || loading}
+        onClick={() => handleAnalyzeFlow(action)}
+        disabled={!hasText || loading}
         className="w-full rounded-md border border-cyan-700/50 bg-cyan-600/15 px-3 py-2 text-xs font-black uppercase tracking-wider text-cyan-100 transition hover:border-cyan-300/70 hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {!aiEnabled ? 'IA preparada para ativação futura' : loading ? 'Analisando o pocket...' : 'Analisar com IA'}
+        {loading ? 'Pensando no pocket...' : 'Executar acao selecionada'}
       </button>
 
-      {!aiEnabled ? (
+      {!hasText ? (
         <p className="mt-2 text-[10px] leading-snug text-gray-500">
-          Recurso desabilitado por enquanto para evitar custos de API. O código já está pronto; ative com VITE_AI_FLOW_ENABLED=true e AI_API_KEY quando quiser usar.
+          Escreva algumas barras no bloco atual para liberar o assistente.
         </p>
-      ) : !hasText && (
-        <p className="mt-2 text-[10px] text-gray-600">Escreva algumas barras no bloco atual para liberar a análise.</p>
+      ) : null}
+
+      {error && (
+        <p className="mt-3 rounded-md border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs text-red-200">{error}</p>
       )}
 
       {result && (
@@ -1233,12 +1275,29 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
             </div>
           </div>
           <div className={`editor-scroll overflow-y-auto px-3 py-3 ${expanded ? 'max-h-[55vh]' : 'max-h-56'}`}>
-            <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-300">{result}</p>
+            <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-gray-300">{result.text}</p>
+            <div className="mt-2 text-[9px] text-gray-600">
+              {result.source === 'ai' ? 'IA externa' : 'motor local'} · contexto ~{result.tokenEstimate.input} tokens · economia ~{result.tokenEstimate.savedByContext}
+            </div>
+            {result.suggestions.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {result.suggestions.slice(0, 6).map((line, index) => (
+                  <button
+                    key={`${line}-${index}`}
+                    type="button"
+                    onClick={() => onInsertLine(line)}
+                    className="rounded border border-cyan-800/40 bg-cyan-950/20 px-2 py-1 text-[10px] text-cyan-100 transition hover:border-cyan-300/70"
+                  >
+                    inserir
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {showFullResult && (
+      {showFullResult && result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-8 backdrop-blur-sm">
           <div className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg border border-cyan-700/35 bg-[#08080c] shadow-[0_0_60px_rgba(0,229,255,0.14)]">
             <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
@@ -1255,7 +1314,7 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
               </button>
             </div>
             <div className="editor-scroll flex-1 overflow-y-auto px-5 py-4">
-              <p className="whitespace-pre-wrap break-words text-sm leading-7 text-gray-200">{result}</p>
+              <p className="whitespace-pre-wrap break-words text-sm leading-7 text-gray-200">{result.text}</p>
             </div>
           </div>
         </div>
@@ -1264,7 +1323,7 @@ function AIFlowAnalysisBox({ text, bpm }: { text: string; bpm: number }) {
   )
 }
 
-function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | 'onInsertLine'>) {
+function AssistantTab({ lines, selectedWord, activeBarIndex, onInsertLine }: Pick<RightPanelProps, 'lines' | 'selectedWord' | 'activeBarIndex' | 'onInsertLine'>) {
   const { bpm } = useEditorStore()
   const text = useMemo(() => lines.join('\n').trim(), [lines])
   const contentLines = useMemo(() => lines.map(line => line.trim()).filter(Boolean), [lines])
@@ -1282,7 +1341,7 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
       <div>
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
         <div className="mt-4">
-          <AIFlowAnalysisBox text={text} bpm={bpm} />
+          <AIFlowAnalysisBox text={text} bpm={bpm} selectedWord={selectedWord} activeLineIndex={activeBarIndex} onInsertLine={onInsertLine} />
         </div>
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">Escreva ao menos 2 linhas para o app entender seu desenho de rima.</p>
@@ -1296,7 +1355,7 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
       <div>
         <h3 className="text-xs text-gray-500 uppercase tracking-wider font-bold">Assistente de Verso</h3>
         <div className="mt-4">
-          <AIFlowAnalysisBox text={text} bpm={bpm} />
+          <AIFlowAnalysisBox text={text} bpm={bpm} selectedWord={selectedWord} activeLineIndex={activeBarIndex} onInsertLine={onInsertLine} />
         </div>
         <div className="text-center mt-10">
           <p className="text-sm text-gray-500">Continue escrevendo para gerar um alvo de próxima linha.</p>
@@ -1312,7 +1371,7 @@ function AssistantTab({ lines, onInsertLine }: Pick<RightPanelProps, 'lines' | '
         <p className="text-[10px] text-gray-600 mt-1">Sugestões locais baseadas no seu esquema e na métrica atual.</p>
       </div>
 
-      <AIFlowAnalysisBox text={text} bpm={bpm} />
+      <AIFlowAnalysisBox text={text} bpm={bpm} selectedWord={selectedWord} activeLineIndex={activeBarIndex} onInsertLine={onInsertLine} />
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <MetricCard label="Alvo" value={suggestion.nextRhymeClass ?? 'livre'} />
@@ -1425,7 +1484,7 @@ export function RightPanel({
             onInsertWord={onInsertWord}
           />
         )}
-        {activeTab === 'assistant' && <AssistantTab lines={lines} onInsertLine={onInsertLine} />}
+        {activeTab === 'assistant' && <AssistantTab lines={lines} selectedWord={selectedWord} activeBarIndex={activeBarIndex} onInsertLine={onInsertLine} />}
       </div>
     </aside>
   )

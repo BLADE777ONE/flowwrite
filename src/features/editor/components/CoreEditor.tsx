@@ -1,6 +1,7 @@
 // src/features/editor/components/CoreEditor.tsx
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -15,6 +16,24 @@ import { GhostNotesView } from './GhostNotesView'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { calculateArtistDNA } from '../../artistDNA/ArtistDNAService'
 import { extractContentWords } from '../../artistDNA/vocabularyEntropy'
+import { extractWordFromSelection, replaceWordAtSelection } from '../../../renderer/utils/editorText'
+import { FlowMapWorkspace } from '../../rhythm/components/FlowMapWorkspace'
+
+function getActiveBarIndex(editor: Editor): number {
+  let contentIndex = 0
+  let activeIndex = 0
+  let found = false
+  const { from } = editor.state.selection
+
+  editor.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'paragraph') return
+    const isActiveNode = from >= offset && from <= offset + node.nodeSize
+    if (isActiveNode && !found) { activeIndex = contentIndex; found = true }
+    if (node.textContent.trim()) contentIndex++
+  })
+
+  return found ? activeIndex : Math.max(0, contentIndex - 1)
+}
 
 const DEBOUNCE_MS = 500
 const AUTOSAVE_MS = 3000
@@ -28,6 +47,8 @@ export function CoreEditor() {
     bpm, setBpm,
     toggleGhostNotes, toggleRhymeHighlights,
     incrementAutosaveCount, autosaveCount,
+    activeBarIndex, metronomePlaying,
+    setSelectedWord, setEditorDisplayState, registerInsertCallbacks,
   } = useEditorStore()
 
   const {
@@ -40,6 +61,7 @@ export function CoreEditor() {
   const autosaveRef   = useRef<ReturnType<typeof setTimeout>>()
   const workerRef     = useRef<Worker | null>(null)
   const pythonReadyRef = useRef(false)
+  const [showFlowMap, setShowFlowMap] = useState(false)
 
   // ─── Web Worker ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -192,8 +214,10 @@ export function CoreEditor() {
       attributes: { class: 'tiptap-editor h-full', spellcheck: 'false' }
     },
     onUpdate: ({ editor }) => {
-      const text = editor.getText()
+      const text = editor.getText({ blockSeparator: '\n' })
       updateContent(text)
+      const contentLines = text.split('\n').map(l => l.trim()).filter(Boolean)
+      setEditorDisplayState(contentLines, getActiveBarIndex(editor))
       clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         triggerAnalysis(text)
@@ -201,7 +225,14 @@ export function CoreEditor() {
       }, DEBOUNCE_MS)
       clearTimeout(autosaveRef.current)
       autosaveRef.current = setTimeout(() => triggerAutosave(text), AUTOSAVE_MS)
-    }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      const { raw, normalized } = extractWordFromSelection(editor)
+      setSelectedWord(normalized, raw.toLowerCase())
+      const text = editor.getText({ blockSeparator: '\n' })
+      const contentLines = text.split('\n').map(l => l.trim()).filter(Boolean)
+      setEditorDisplayState(contentLines, getActiveBarIndex(editor))
+    },
   })
 
   useEffect(() => {
@@ -222,6 +253,16 @@ export function CoreEditor() {
       triggerPythonAnalysis(currentSong.content || '')
     }
   }, [currentSong?.id])
+
+  useEffect(() => {
+    if (!editor) return
+    const insertWord = (word: string) => replaceWordAtSelection(editor, word)
+    const insertLine = (line: string) => {
+      const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      editor.chain().focus('end').insertContent(`<p>${escaped}</p>`).run()
+    }
+    registerInsertCallbacks(insertWord, insertLine)
+  }, [editor])
 
   useEffect(() => {
     async function loadDNA() {
@@ -250,7 +291,7 @@ export function CoreEditor() {
   // ─── Empty state ──────────────────────────────────────────────────────────
   if (!currentSong) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-6" style={{ background: '#f9f8f5' }}>
+      <div className="h-full flex flex-col items-center justify-center gap-6" style={{ background: '#09090d' }}>
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl"
           style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(8,145,178,0.08))', border: '1px solid rgba(124,58,237,0.12)' }}
@@ -258,7 +299,7 @@ export function CoreEditor() {
           ✍️
         </div>
         <div className="text-center space-y-2">
-          <p className="text-xl font-semibold" style={{ color: '#1a1829' }}>Nenhuma letra selecionada</p>
+          <p className="text-xl font-semibold" style={{ color: '#f8fafc' }}>Nenhuma letra selecionada</p>
           <p className="text-sm" style={{ color: '#8b8a9f' }}>Abra um projeto na sidebar e selecione uma letra</p>
         </div>
         <div
@@ -273,15 +314,15 @@ export function CoreEditor() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden relative" style={{ background: '#f9f8f5' }}>
+    <div className="h-full flex flex-col overflow-hidden relative" style={{ background: '#09090d' }}>
 
       {/* ── Header do editor ─────────────────────────────────────────────── */}
       <div
         className="flex-shrink-0 px-4 py-2 flex items-center gap-2"
         style={{
-          background: 'rgba(255,255,255,0.85)',
+          background: 'rgba(12,12,18,0.92)',
           backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(0,0,0,0.07)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
       >
@@ -291,7 +332,7 @@ export function CoreEditor() {
           defaultValue={currentSong.title}
           placeholder="Título da letra"
           className="flex-1 bg-transparent text-sm font-semibold outline-none min-w-0 transition-colors"
-          style={{ color: '#1a1829' }}
+          style={{ color: '#f8fafc' }}
           onBlur={async (e) => {
             if (e.target.value !== currentSong.title) {
               await window.flowAPI.invoke('lyric:update', currentSong.id, { title: e.target.value })
@@ -300,7 +341,7 @@ export function CoreEditor() {
         />
 
         {/* Separador */}
-        <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.1)' }} />
+        <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }} />
 
         {/* BPM */}
         <div
@@ -326,11 +367,18 @@ export function CoreEditor() {
         </div>
 
         {/* Separador */}
-        <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.1)' }} />
+        <div className="w-px h-5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.1)' }} />
 
         {/* Toolbar */}
         <SectionToolbar editor={editor} />
 
+        <ToolbarBtn
+          onClick={() => setShowFlowMap(true)}
+          active={showFlowMap}
+          icon="#"
+          label="Flow"
+          title="Abrir timeline de partitura"
+        />
         <ToolbarBtn
           onClick={() => { toggleRhymeHighlights(); editor?.commands.toggleRhymeHighlights() }}
           active={rhymeHighlightsEnabled}
@@ -359,7 +407,7 @@ export function CoreEditor() {
         {ghostNotesEnabled ? (
           <GhostNotesView content={content} metricsAnalysis={metricsAnalysis} />
         ) : (
-          <div className="h-full overflow-y-auto editor-scroll" style={{ background: '#f9f8f5' }}>
+          <div className="h-full overflow-y-auto editor-scroll" style={{ background: '#09090d' }}>
             <EditorContent editor={editor} className="h-full tiptap-editor" />
           </div>
         )}
@@ -368,6 +416,17 @@ export function CoreEditor() {
       {/* ── Histórico de versões ──────────────────────────────────────────── */}
       {showVersionHistory && (
         <VersionHistoryPanel onClose={() => setShowVersionHistory(false)} />
+      )}
+
+      {showFlowMap && (
+        <FlowMapWorkspace
+          title={currentSong.title}
+          lines={content.split('\n')}
+          bpm={bpm}
+          activeBarIndex={activeBarIndex}
+          playing={metronomePlaying}
+          onClose={() => setShowFlowMap(false)}
+        />
       )}
     </div>
   )
