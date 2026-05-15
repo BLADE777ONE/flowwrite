@@ -8,7 +8,7 @@ import { SectionNode } from '../features/editor/extensions/SectionNode'
 import { LineGutterExtension } from '../features/editor/extensions/LineGutterExtension'
 import { getDictionaryData, type DictionaryResult } from '../features/dictionary/DictionaryService'
 import { useEditorStore } from '../features/editor/editorStore'
-import { RhythmicScorePanel } from '../features/rhythm/components/RhythmicScorePanel'
+import { FlowMapWorkspace } from '../features/rhythm/components/FlowMapWorkspace'
 import { Sidebar } from './components/Sidebar'
 import { EditorTopBar } from './components/EditorTopBar'
 import { LyricsEditor } from './components/LyricsEditor'
@@ -94,6 +94,7 @@ export default function App() {
   const [dictLoading, setDictLoading] = useState(false)
   const [activeBarIndex, setActiveBarIndex] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showFlowMap, setShowFlowMap] = useState(false)
   const { bpm, setBpm, metronomePlaying } = useEditorStore()
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -367,6 +368,10 @@ export default function App() {
     setShowOnboarding(true)
   }
 
+  function openFlowMap() {
+    setShowFlowMap(true)
+  }
+
   async function handleOnboardingCreateProject() {
     if (projects.length === 0) {
       await handleNewProject()
@@ -431,19 +436,13 @@ export default function App() {
           onSave={handleSave}
           onDelete={handleDelete}
           onOpenHelp={openHelpTour}
+          onOpenFlowMap={openFlowMap}
         />
         <LyricsEditor
           editor={editor}
           lyrics={lyrics}
           scopedLines={scopedLines}
           activeBlockStart={activeBlockStart}
-        />
-        <RhythmicScorePanel
-          lines={scopedLines}
-          bpm={bpm}
-          startBarIndex={activeBlockStart}
-          activeBarIndex={safeActiveBarIndex}
-          playing={metronomePlaying}
         />
         <EditorStatusBar lyrics={lyrics} lineCount={lines.length} saving={saving} segments={segments} />
       </div>
@@ -469,6 +468,17 @@ export default function App() {
           onSkip={completeOnboarding}
           onCreateFirstProject={handleOnboardingCreateProject}
           onFocusToolTab={setActiveTab}
+        />
+      )}
+
+      {showFlowMap && (
+        <FlowMapWorkspace
+          title={title}
+          lines={contentLines}
+          bpm={bpm}
+          activeBarIndex={safeActiveBarIndex}
+          playing={metronomePlaying}
+          onClose={() => setShowFlowMap(false)}
         />
       )}
     </div>

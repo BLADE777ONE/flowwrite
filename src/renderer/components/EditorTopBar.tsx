@@ -12,6 +12,7 @@ interface EditorTopBarProps {
   onSave: () => void
   onDelete: () => void
   onOpenHelp: () => void
+  onOpenFlowMap: () => void
 }
 
 export function EditorTopBar({
@@ -23,6 +24,7 @@ export function EditorTopBar({
   onSave,
   onDelete,
   onOpenHelp,
+  onOpenFlowMap,
 }: EditorTopBarProps) {
   const { bpm, setBpm, metronomePlaying, toggleMetronomePlaying } = useEditorStore()
   const { beat, flash } = useMetronome(bpm, metronomePlaying)
@@ -115,6 +117,16 @@ export function EditorTopBar({
       </div>
 
       <SectionToolbar editor={editor} />
+
+      <button
+        type="button"
+        onClick={onOpenFlowMap}
+        disabled={!hasCurrentSong}
+        className="hidden lg:inline-flex h-8 items-center rounded-md border border-cyan-700/40 bg-cyan-950/20 px-3 text-[10px] font-black uppercase tracking-wider text-cyan-200 transition hover:border-cyan-400/70 hover:bg-cyan-900/30 disabled:opacity-30 disabled:cursor-not-allowed"
+        title="Abrir Mapa de Flow em uma tela separada"
+      >
+        Mapa de Flow
+      </button>
 
       <button
         type="button"

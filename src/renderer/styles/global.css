@@ -404,6 +404,20 @@
     min-height: 2.85rem;
   }
 
+  .flow-map-tool .rhythm-panel {
+    height: 100%;
+    min-height: 22rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: none;
+  }
+
+  .flow-map-tool .rhythm-panel.is-detail {
+    height: 100%;
+    min-height: 22rem;
+  }
+
   .rhythm-collapse-btn {
     position: absolute;
     right: 1rem;
@@ -504,27 +518,6 @@
     background: rgba(0,229,255,0.12);
   }
 
-  .rhythm-open-guide-btn {
-    height: 2.1rem;
-    padding: 0 0.72rem;
-    flex: 0 0 auto;
-    border-radius: 0.42rem;
-    border: 1px solid rgba(168,85,247,0.28);
-    background: rgba(168,85,247,0.10);
-    color: #e9d5ff;
-    font-size: 0.62rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-  }
-
-  .rhythm-open-guide-btn:hover {
-    border-color: rgba(168,85,247,0.62);
-    background: rgba(168,85,247,0.18);
-    color: #fff;
-  }
-
   .rhythm-help {
     margin: 0.45rem 1rem 0.25rem;
     padding: 0.55rem 0.7rem;
@@ -538,6 +531,63 @@
 
   .rhythm-help strong {
     color: #e5faff;
+  }
+
+  .rhythm-quick-read {
+    display: grid;
+    grid-template-columns: 8.8rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+    margin: 0.45rem 1rem 0.35rem;
+    padding: 0.62rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.5rem;
+    background: rgba(255,255,255,0.035);
+  }
+
+  .rhythm-quick-read p {
+    color: rgba(255,255,255,0.42);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .rhythm-quick-read strong {
+    display: block;
+    margin-top: 0.16rem;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 950;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .rhythm-quick-read span {
+    min-width: 0;
+    color: rgba(226,232,240,0.72);
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .rhythm-quick-read.is-hot {
+    border-color: rgba(239,68,68,0.28);
+    background: rgba(239,68,68,0.08);
+  }
+
+  .rhythm-quick-read.is-cool {
+    border-color: rgba(59,130,246,0.24);
+    background: rgba(59,130,246,0.08);
+  }
+
+  .rhythm-quick-read.is-good {
+    border-color: rgba(34,197,94,0.24);
+    background: rgba(34,197,94,0.08);
+  }
+
+  .rhythm-quick-read.is-low {
+    border-color: rgba(168,85,247,0.24);
+    background: rgba(168,85,247,0.08);
   }
 
   .rhythm-pocket-toggle button,
@@ -1038,52 +1088,41 @@
     line-height: 1.45;
   }
 
-  .flow-guide-backdrop {
+  .flow-map-page {
     position: fixed;
     inset: 0;
-    z-index: 160;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-    background: rgba(3,3,8,0.82);
-    backdrop-filter: blur(14px);
+    z-index: 150;
+    padding: 1.25rem;
+    background: rgba(3,3,8,0.86);
+    backdrop-filter: blur(16px);
   }
 
-  .flow-guide-modal {
-    width: min(72rem, calc(100vw - 3rem));
-    height: min(45rem, calc(100vh - 3rem));
+  .flow-map-shell {
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 0.8rem;
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 0.9rem;
     background:
-      radial-gradient(circle at 14% 0%, rgba(124,58,237,0.18), transparent 34%),
-      radial-gradient(circle at 85% 4%, rgba(0,229,255,0.14), transparent 30%),
+      radial-gradient(circle at 48% 0%, rgba(124,58,237,0.18), transparent 34%),
       #08080c;
-    box-shadow: 0 34px 110px rgba(0,0,0,0.58);
+    box-shadow: 0 28px 90px rgba(0,0,0,0.62);
+    animation: flowMapExpand 180ms ease-out both;
   }
 
-  .flow-guide-header,
-  .flow-guide-footer {
+  .flow-map-topbar {
+    min-height: 4.7rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1.05rem 1.25rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.025);
   }
 
-  .flow-guide-footer {
-    border-top: 1px solid rgba(255,255,255,0.08);
-    border-bottom: 0;
-    justify-content: flex-end;
-  }
-
-  .flow-guide-kicker,
-  .flow-guide-label {
+  .flow-map-kicker {
     color: #67e8f9;
     font-size: 0.62rem;
     font-weight: 950;
@@ -1091,224 +1130,232 @@
     text-transform: uppercase;
   }
 
-  .flow-guide-header h2 {
-    margin-top: 0.25rem;
-    color: #f8fafc;
+  .flow-map-topbar h1 {
+    margin-top: 0.2rem;
+    color: #fff;
     font-size: 1.55rem;
     font-weight: 950;
     line-height: 1;
   }
 
-  .flow-guide-header p:not(.flow-guide-kicker) {
-    margin-top: 0.42rem;
-    color: rgba(226,232,240,0.66);
-    font-size: 0.82rem;
+  .flow-map-topbar span {
+    display: block;
+    margin-top: 0.3rem;
+    color: rgba(255,255,255,0.46);
+    font-size: 0.78rem;
   }
 
-  .flow-guide-close,
-  .flow-guide-footer button {
-    border-radius: 0.48rem;
-    border: 1px solid rgba(255,255,255,0.10);
+  .flow-map-topbar button {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 0.5rem;
     background: rgba(255,255,255,0.045);
-    color: #d4d4d8;
-    font-size: 0.75rem;
+    color: #e5e7eb;
+    font-size: 0.78rem;
     font-weight: 850;
-    padding: 0.62rem 0.9rem;
+    padding: 0.68rem 0.9rem;
     transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
   }
 
-  .flow-guide-close:hover,
-  .flow-guide-footer button:hover {
-    border-color: rgba(255,255,255,0.22);
-    background: rgba(255,255,255,0.08);
+  .flow-map-topbar button:hover {
+    border-color: rgba(103,232,249,0.5);
+    background: rgba(34,211,238,0.10);
     color: #fff;
   }
 
-  .flow-guide-footer button.primary {
-    border-color: rgba(0,229,255,0.35);
-    background: linear-gradient(90deg, rgba(124,58,237,0.85), rgba(8,145,178,0.82));
-    color: white;
-    box-shadow: 0 0 24px rgba(0,229,255,0.12);
-  }
-
-  .flow-guide-body {
+  .flow-map-content {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    padding: 1.15rem;
-  }
-
-  .flow-guide-hero,
-  .flow-guide-section,
-  .flow-guide-card {
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 0.65rem;
-    background: rgba(255,255,255,0.035);
-  }
-
-  .flow-guide-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(13rem, 19rem);
+    grid-template-columns: minmax(21rem, 0.95fr) minmax(28rem, 1.35fr);
     gap: 1rem;
     padding: 1rem;
   }
 
-  .flow-guide-hero h3,
-  .flow-guide-section h3 {
-    margin-top: 0.38rem;
-    color: #f4f4f5;
-    font-size: 1.1rem;
+  .flow-map-lyrics,
+  .flow-map-tool {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+    background: rgba(255,255,255,0.032);
+    overflow: hidden;
+  }
+
+  .flow-map-tool {
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .flow-map-section-head {
+    min-height: 4.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .flow-map-section-head h2,
+  .flow-map-reading h2 {
+    margin-top: 0.22rem;
+    color: #f8fafc;
+    font-size: 1rem;
     font-weight: 920;
     line-height: 1.15;
   }
 
-  .flow-guide-hero p:not(.flow-guide-label) {
-    margin-top: 0.55rem;
-    color: rgba(226,232,240,0.68);
-    font-size: 0.86rem;
-    line-height: 1.55;
-  }
-
-  .flow-guide-summary {
-    display: grid;
-    gap: 0.48rem;
-    align-content: center;
-  }
-
-  .flow-guide-summary span {
-    border: 1px solid rgba(0,229,255,0.12);
-    border-radius: 0.45rem;
-    background: rgba(0,229,255,0.055);
+  .flow-map-section-head > span {
+    border: 1px solid rgba(103,232,249,0.18);
+    border-radius: 999px;
+    background: rgba(34,211,238,0.075);
     color: #bae6fd;
     font-family: theme('fontFamily.mono');
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 850;
-    padding: 0.55rem 0.65rem;
+    padding: 0.35rem 0.55rem;
   }
 
-  .flow-guide-section {
-    margin-top: 0.9rem;
-    padding: 1rem;
+  .flow-map-line-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.75rem;
   }
 
-  .flow-guide-steps {
-    margin-top: 0.75rem;
+  .flow-map-line {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.7rem;
-  }
-
-  .flow-guide-steps div {
-    min-height: 5.2rem;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 0.55rem;
-    background: rgba(0,0,0,0.22);
-    padding: 0.72rem;
-  }
-
-  .flow-guide-steps strong {
-    display: inline-flex;
-    width: 1.45rem;
-    height: 1.45rem;
+    grid-template-columns: 2.4rem minmax(0, 1fr) 4.8rem;
+    gap: 0.75rem;
     align-items: center;
-    justify-content: center;
-    border-radius: 0.38rem;
-    background: rgba(168,85,247,0.18);
-    color: #e9d5ff;
-    font-family: theme('fontFamily.mono');
-    font-size: 0.78rem;
-    margin-bottom: 0.55rem;
-  }
-
-  .flow-guide-steps span {
-    display: block;
-    color: rgba(226,232,240,0.68);
-    font-size: 0.78rem;
-    line-height: 1.42;
-  }
-
-  .flow-guide-section-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  .flow-guide-section-head > span {
-    max-width: 18rem;
-    color: rgba(103,232,249,0.78);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    text-align: right;
-  }
-
-  .flow-guide-demo {
-    margin-top: 0.85rem;
+    padding: 0.78rem 0.75rem;
+    border: 1px solid transparent;
     border-radius: 0.55rem;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: #101014;
-    padding: 0.55rem 0;
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
   }
 
-  .flow-guide-demo .rhythm-beat-header {
-    position: relative;
-    margin-top: 0;
-    background: transparent;
+  .flow-map-line.is-active {
+    border-color: rgba(103,232,249,0.26);
+    background: rgba(34,211,238,0.075);
+    transform: scale(1.01);
   }
 
-  .flow-guide-demo .rhythm-line {
-    margin: 0.3rem 1rem 0;
-    min-height: 3.6rem;
-    border-bottom: 0;
+  .flow-map-line-number {
+    color: rgba(103,232,249,0.5);
+    font-family: theme('fontFamily.mono');
+    font-size: 0.72rem;
+    font-weight: 850;
   }
 
-  .flow-guide-grid {
-    margin-top: 0.9rem;
+  .flow-map-line p {
+    min-width: 0;
+    color: #e5e7eb;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+
+  .flow-map-line strong {
+    justify-self: end;
+    border-radius: 0.35rem;
+    font-size: 0.62rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.42rem;
+    text-transform: uppercase;
+  }
+
+  .flow-map-line strong.is-hot,
+  .flow-map-reading span.is-hot {
+    color: #fca5a5;
+    background: rgba(239,68,68,0.13);
+  }
+
+  .flow-map-line strong.is-cool,
+  .flow-map-reading span.is-cool {
+    color: #93c5fd;
+    background: rgba(59,130,246,0.13);
+  }
+
+  .flow-map-line strong.is-good,
+  .flow-map-reading span.is-good {
+    color: #86efac;
+    background: rgba(34,197,94,0.13);
+  }
+
+  .flow-map-reading {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.65rem;
+    background: rgba(0,0,0,0.22);
+    padding: 0.8rem;
+  }
+
+  .flow-map-reading span {
+    border-radius: 0.35rem;
+    padding: 0.12rem 0.35rem;
+  }
+
+  .flow-map-reading p:not(.flow-map-kicker) {
+    margin-top: 0.4rem;
+    color: rgba(226,232,240,0.66);
+    font-size: 0.82rem;
+  }
+
+  .flow-map-simple-guide {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
-  }
-
-  .flow-guide-card {
-    padding: 1rem;
-  }
-
-  .flow-guide-card ul {
-    margin-top: 0.65rem;
-    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.55rem;
   }
 
-  .flow-guide-card li {
-    color: rgba(226,232,240,0.68);
-    font-size: 0.8rem;
-    line-height: 1.45;
+  .flow-map-simple-guide div {
+    min-height: 4.4rem;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 0.55rem;
+    background: rgba(255,255,255,0.035);
+    padding: 0.65rem;
   }
 
-  .flow-guide-card b {
-    color: #f4f4f5;
+  .flow-map-simple-guide strong {
+    display: inline-flex;
+    width: 1.35rem;
+    height: 1.35rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.35rem;
+    background: rgba(168,85,247,0.18);
+    color: #e9d5ff;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.72rem;
+    margin-bottom: 0.45rem;
   }
 
-  @media (max-width: 980px) {
-    .flow-guide-hero,
-    .flow-guide-grid,
-    .flow-guide-steps {
+  .flow-map-simple-guide span {
+    display: block;
+    color: rgba(226,232,240,0.64);
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .flow-map-empty {
+    height: 100%;
+    min-height: 18rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.42);
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 1rem;
+  }
+
+  @media (max-width: 1100px) {
+    .flow-map-content,
+    .flow-map-simple-guide {
       grid-template-columns: 1fr;
     }
-
-    .flow-guide-modal {
-      width: calc(100vw - 1rem);
-      height: calc(100vh - 1rem);
-    }
-
-    .flow-guide-section-head {
-      flex-direction: column;
-    }
-
-    .flow-guide-section-head > span {
-      text-align: left;
-    }
   }
+
 }
 
 /* ─── Scrollbar invisível ─────────────────────────────────────────────────── */
@@ -1334,6 +1381,10 @@
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+@keyframes flowMapExpand {
+  from { opacity: 0; transform: translateY(18px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes rhythmPlayhead {
   from { left: 0; }
